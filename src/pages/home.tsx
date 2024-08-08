@@ -23,6 +23,10 @@ const Home: React.FC = () => {
   };
 
   const handleOk = async () => {
+    if (!directoryPath) {
+      message.error('Please select a directory first.');
+      return;
+    }
     const projectData = { projectName, entities };
     try {
       await createProject(projectData, directoryPath);
@@ -55,6 +59,9 @@ const Home: React.FC = () => {
       });
       if (!result.canceled && result.filePaths.length > 0) {
         setDirectoryPath(result.filePaths[0]);
+        message.success('Directory selected successfully');
+      } else {
+        message.error('No directory selected');
       }
     } catch (err) {
       message.error(`Failed to select directory: ${err.message}`);
