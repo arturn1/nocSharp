@@ -1,5 +1,5 @@
 import { ProjectData } from '../models/ProjectData';
-import path from 'path';
+import { joinPaths } from '../utils/pathUtils';
 
 export const createProject = async (
   projectData: ProjectData,
@@ -16,10 +16,10 @@ export const createProject = async (
     return { success: false, logs, errors };
   }
 
-  const projectPath = path.join(directoryPath, projectName);
+  const projectPath = joinPaths(directoryPath, projectName);
 
   try {
-    const createProjectCommand = `cd ${directoryPath} && nc new ${projectName}`;
+    const createProjectCommand = `cd "${directoryPath}" && nc new "${projectName}"`;
     logs.push(`Executing: ${createProjectCommand}`);
     commands.push(createProjectCommand);
     if (executeCommands) {
@@ -32,7 +32,7 @@ export const createProject = async (
         const fields = entity.properties
           .map(prop => `${prop.name}:${prop.type}`)
           .join(' ');
-        const createEntityCommand = `cd ${projectPath} && nc g e ${entity.name} ${fields}`;
+        const createEntityCommand = `cd "${projectPath}" && nc g e "${entity.name}" ${fields}`;
         logs.push(`Executing: ${createEntityCommand}`);
         commands.push(createEntityCommand);
         if (executeCommands) {
