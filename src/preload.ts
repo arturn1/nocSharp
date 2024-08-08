@@ -4,4 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
   executeCommand: (command: any) => ipcRenderer.invoke('execute-command', command),
+  dialog: {
+    showOpenDialog: (options: any) => ipcRenderer.invoke('show-open-dialog', options),
+  },
 });

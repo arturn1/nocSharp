@@ -1,4 +1,4 @@
-import { app, BrowserWindow , ipcMain} from 'electron';
+import { app, BrowserWindow , dialog, ipcMain} from 'electron';
 import path from 'path';
 const { exec } = require('child_process');
 
@@ -62,6 +62,11 @@ ipcMain.handle('execute-command', async (event, command) => {
       resolve(stdout);
     });
   });
+});
+
+ipcMain.handle('show-open-dialog', async (event, options) => {
+  const result = await dialog.showOpenDialog(options);
+  return result;
 });
 
 // In this file you can include the rest of your app's specific main process

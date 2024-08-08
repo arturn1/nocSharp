@@ -1,5 +1,5 @@
-import React from 'react';
-import { Typography, message, Button, Form } from 'antd';
+import React, { useState } from 'react';
+import { Typography, message, Button, Form, Modal, Input } from 'antd';
 import { useEntities } from '../hooks/useEntities';
 import { useProjectName } from '../hooks/useProjectName';
 import EntityForm from '../components/EntityForm';
@@ -14,15 +14,27 @@ const { Title } = Typography;
 const Home: React.FC = () => {
   const { projectName, setProjectName } = useProjectName();
   const { entities, setEntities, addEntity, updateEntityName, addProperty, updateProperty, removeProperty } = useEntities();
+  
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [directoryPath, setDirectoryPath] = useState('');
 
-  const handleCreateProject = async () => {
+  const handleCreateProject = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleOk = async () => {
     const projectData = { projectName, entities };
     try {
-      await createProject(projectData);
+      await createProject(projectData, directoryPath);
       message.success('Project created successfully');
+      setIsModalVisible(false);
     } catch (error) {
       message.error(`Failed to create project: ${error.message}`);
     }
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
   };
 
   const handleFileUpload = async (file: RcFile) => {
@@ -33,6 +45,19 @@ const Home: React.FC = () => {
       setProjectName(fileNameWithoutExtension);
     } catch (error) {
       message.error(`Failed to read file: ${error.message}`);
+    }
+  };
+
+  const openDirectorySelector = async () => {
+    try {
+      const result = await window.electron.dialog.showOpenDialog({
+        properties: ['openDirectory'],
+      });
+      if (!result.canceled && result.filePaths.length > 0) {
+        setDirectoryPath(result.filePaths[0]);
+      }
+    } catch (err) {
+      message.error(`Failed to select directory: ${err.message}`);
     }
   };
 
@@ -62,6 +87,20 @@ const Home: React.FC = () => {
           </Button>
         )}
       </Form>
+      <Modal
+        title="Select Directory"
+        visible={isModalVisible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        okButtonProps={{ disabled: !directoryPath }}
+      >
+        <Form.Item label="Directory Path">
+          <Input value={directoryPath} readOnly />
+          <Button onClick={openDirectorySelector} style={{ marginTop: '10px' }}>
+            Select Directory
+          </Button>
+        </Form.Item>
+      </Modal>
     </div>
   );
 };
