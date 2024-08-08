@@ -1,4 +1,5 @@
 import { ProjectData } from '../models/ProjectData';
+import path from 'path';
 
 export const createProject = async (
   projectData: ProjectData,
@@ -15,7 +16,7 @@ export const createProject = async (
     return { success: false, logs, errors };
   }
 
-  const projectPath = `${directoryPath}/${projectName}`;
+  const projectPath = path.join(directoryPath, projectName);
 
   try {
     const createProjectCommand = `cd ${directoryPath} && nc new ${projectName}`;
