@@ -9,7 +9,7 @@ import { createProject } from '../services/ProjectService';
 import { readFile } from '../services/FileService';
 import { RcFile } from 'antd/es/upload';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const Home: React.FC = () => {
   const { projectName, setProjectName } = useProjectName();
@@ -17,6 +17,8 @@ const Home: React.FC = () => {
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [directoryPath, setDirectoryPath] = useState('');
+  const [logs, setLogs] = useState<string[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const handleCreateProject = () => {
     setIsModalVisible(true);
@@ -28,12 +30,15 @@ const Home: React.FC = () => {
       return;
     }
     const projectData = { projectName, entities };
-    try {
-      await createProject(projectData, directoryPath);
+    const result = await createProject(projectData, directoryPath);
+    setLogs(result.logs);
+    setErrors(result.errors);
+
+    if (result.success) {
       message.success('Project created successfully');
       setIsModalVisible(false);
-    } catch (error) {
-      message.error(`Failed to create project: ${error.message}`);
+    } else {
+      message.error('Failed to create project');
     }
   };
 
@@ -108,6 +113,20 @@ const Home: React.FC = () => {
           </Button>
         </Form.Item>
       </Modal>
+      <div style={{ marginTop: '20px' }}>
+        <Title level={4}>Execution Logs</Title>
+        {logs.map((log, index) => (
+          <Text key={index} style={{ display: 'block' }}>{log}</Text>
+        ))}
+        {errors.length > 0 && (
+          <>
+            <Title level={4} type="danger">Errors</Title>
+            {errors.map((error, index) => (
+              <Text key={index} type="danger" style={{ display: 'block' }}>{error}</Text>
+            ))}
+          </>
+        )}
+      </div>
     </div>
   );
 };
