@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Typography, message, Button, Form, Modal, Input } from 'antd';
+import { Typography, message, Button, Form, Modal, Input, Select } from 'antd';
 import { useEntities } from '../hooks/useEntities';
 import { useProjectName } from '../hooks/useProjectName';
 import EntityForm from '../components/EntityForm';
@@ -10,6 +10,7 @@ import { readFile } from '../services/FileService';
 import { RcFile } from 'antd/es/upload';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const Home: React.FC = () => {
   const { projectName, setProjectName } = useProjectName();
@@ -19,6 +20,7 @@ const Home: React.FC = () => {
   const [directoryPath, setDirectoryPath] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [executeCommands, setExecuteCommands] = useState(true);
 
   const handleCreateProject = () => {
     setIsModalVisible(true);
@@ -30,7 +32,7 @@ const Home: React.FC = () => {
       return;
     }
     const projectData = { projectName, entities };
-    const result = await createProject(projectData, directoryPath);
+    const result = await createProject(projectData, directoryPath, executeCommands);
     setLogs(result.logs);
     setErrors(result.errors);
 
@@ -93,6 +95,12 @@ const Home: React.FC = () => {
             removeProperty={removeProperty}
           />
         </div>
+        <Form.Item label="Execute Commands">
+          <Select value={executeCommands ? 'yes' : 'no'} onChange={(value) => setExecuteCommands(value === 'yes')}>
+            <Option value="yes">Yes</Option>
+            <Option value="no">No</Option>
+          </Select>
+        </Form.Item>
         {projectName && entities.length > 0 && (
           <Button type="primary" onClick={handleCreateProject} style={{ marginTop: '20px' }}>
             Create Project
