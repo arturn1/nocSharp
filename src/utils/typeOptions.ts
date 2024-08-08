@@ -1,7 +1,7 @@
 import { Entity } from '../models/Entity';
 
 export const csharpTypes = [
-  'bool', 'byte', 'char', 'DateTime', 'decimal', 'double', 'dynamic', 'float', 'Guid',
+  'bool', 'byte', 'char', 'datetime', 'decimal', 'double', 'dynamic', 'float', 'Guid',
   'int', 'long', 'object', 'sbyte', 'short', 'string', 'TimeSpan', 'uint', 'ulong', 'ushort'
 ];
 

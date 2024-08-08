@@ -6,7 +6,7 @@ const typeMapping: { [key: string]: string } = {
   'integer': 'int',
   'varchar': 'string',
   'text': 'string',
-  'timestamp': 'DateTime',
+  'timestamp': 'datetime',
   'guid': 'Guid',
 };
 
