@@ -9,6 +9,9 @@ export const useEntities = () => {
   const updateEntityName = (index: number, name: string) => {
     const newEntities = [...entities];
     newEntities[index].name = name;
+    if (name && newEntities[index].properties.length === 0) {
+      newEntities[index].properties.push({ name: '', type: '', collectionType: '' });
+    }
     setEntities(newEntities);
   };
 
