@@ -33,6 +33,11 @@ export const useEntities = () => {
     setEntities(newEntities);
   };
 
+  const removeEntity = (index: number) => {
+    const newEntities = entities.filter((_, entityIndex) => entityIndex !== index);
+    setEntities(newEntities);
+  };
+
   return {
     entities,
     setEntities,
@@ -41,5 +46,6 @@ export const useEntities = () => {
     addProperty,
     updateProperty,
     removeProperty,
+    removeEntity,
   };
 };

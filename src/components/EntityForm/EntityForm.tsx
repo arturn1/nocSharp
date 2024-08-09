@@ -13,6 +13,7 @@ interface EntityFormProps {
   addProperty: (entityIndex: number) => void;
   updateProperty: (entityIndex: number, propertyIndex: number, field: keyof Entity['properties'][number], value: string) => void;
   removeProperty: (entityIndex: number, propertyIndex: number) => void;
+  removeEntity: (index: number) => void;
 }
 
 const EntityForm: React.FC<EntityFormProps> = ({
@@ -22,13 +23,27 @@ const EntityForm: React.FC<EntityFormProps> = ({
   addProperty,
   updateProperty,
   removeProperty,
+  removeEntity,
 }) => {
   return (
     <>
       <Button type="dashed" onClick={addEntity} style={{ marginBottom: '20px' }}>Add Entity</Button>
       <Collapse accordion>
         {entities.map((entity, entityIndex) => (
-          <Panel header={entity.name === '' ? `Entity ${entityIndex + 1}` : entity.name} key={entityIndex}>
+          <Panel 
+            header={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {entity.name === '' ? `Entity ${entityIndex + 1}` : entity.name}
+                <Button
+                  size='small'
+                  type="link"
+                  icon={<MinusOutlined />}
+                  onClick={() => removeEntity(entityIndex)}
+                />
+              </div>
+            }
+            key={entityIndex}
+          >
             <Form.Item label="Entity Name">
               <Input value={entity.name} onChange={(e) => updateEntityName(entityIndex, e.target.value)} />
             </Form.Item>

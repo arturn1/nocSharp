@@ -14,13 +14,14 @@ const { Option } = Select;
 
 const Home: React.FC = () => {
   const { projectName, setProjectName } = useProjectName();
-  const { entities, setEntities, addEntity, updateEntityName, addProperty, updateProperty, removeProperty } = useEntities();
+  const { entities, setEntities, addEntity, updateEntityName, addProperty, updateProperty, removeProperty, removeEntity } = useEntities();
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [directoryPath, setDirectoryPath] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [executeCommands, setExecuteCommands] = useState(true);
+  const [isExistingProject, setIsExistingProject] = useState(false);
 
   const handleCreateProject = () => {
     setIsModalVisible(true);
@@ -32,15 +33,15 @@ const Home: React.FC = () => {
       return;
     }
     const projectData = { projectName, entities };
-    const result = await createProject(projectData, directoryPath, executeCommands);
+    const result = await createProject(projectData, directoryPath, executeCommands, isExistingProject);
     setLogs(result.logs);
     setErrors(result.errors);
 
     if (result.success) {
-      message.success('Project created successfully');
+      message.success(isExistingProject ? 'Entities added successfully' : 'Project created successfully');
       setIsModalVisible(false);
     } else {
-      message.error('Failed to create project');
+      message.error('Failed to process request');
     }
   };
 
@@ -59,13 +60,14 @@ const Home: React.FC = () => {
     }
   };
 
-  const openDirectorySelector = async () => {
+  const openDirectorySelector = async (existingProject: boolean) => {
     try {
       const result = await window.electron.dialog.showOpenDialog({
         properties: ['openDirectory'],
       });
       if (!result.canceled && result.filePaths.length > 0) {
         setDirectoryPath(result.filePaths[0]);
+        setIsExistingProject(existingProject);
         message.success('Directory selected successfully');
       } else {
         message.error('No directory selected');
@@ -77,7 +79,7 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ padding: '20px' }}>
-      <Title level={2}>Create Project</Title>
+      <Title level={2}>Create or Update Project</Title>
       <Form layout="vertical">
         <div style={{ marginBottom: '20px' }}>
           <ProjectForm projectName={projectName} setProjectName={setProjectName} />
@@ -93,6 +95,7 @@ const Home: React.FC = () => {
             addProperty={addProperty}
             updateProperty={updateProperty}
             removeProperty={removeProperty}
+            removeEntity={removeEntity}
           />
         </div>
         <Form.Item label="Execute Commands">
@@ -102,10 +105,16 @@ const Home: React.FC = () => {
           </Select>
         </Form.Item>
         {projectName && entities.length > 0 && (
-          <Button type="primary" onClick={handleCreateProject} style={{ marginTop: '20px' }}>
-            Create Project
+          <Button type="primary" onClick={handleCreateProject} style={{ marginTop: '20px', marginRight: '10px' }}>
+            {isExistingProject ? 'Add Entities to Project' : 'Create Project'}
           </Button>
         )}
+        <Button onClick={() => openDirectorySelector(false)} style={{ marginRight: '10px' }}>
+          Select Directory for New Project
+        </Button>
+        <Button onClick={() => openDirectorySelector(true)}>
+          Select Directory for Existing Project
+        </Button>
       </Form>
       <Modal
         title="Select Directory"
@@ -116,9 +125,6 @@ const Home: React.FC = () => {
       >
         <Form.Item label="Directory Path">
           <Input value={directoryPath} readOnly />
-          <Button onClick={openDirectorySelector} style={{ marginTop: '10px' }}>
-            Select Directory
-          </Button>
         </Form.Item>
       </Modal>
       <div style={{ marginTop: '20px' }}>
