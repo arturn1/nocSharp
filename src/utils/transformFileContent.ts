@@ -7,7 +7,10 @@ const typeMapping: { [key: string]: string } = {
   'varchar': 'string',
   'text': 'string',
   'timestamp': 'datetime',
-  'guid': 'Guid',
+  'datetime': 'datetime',
+  'guid': 'guid',
+  'boolean': 'bool',
+  'decimal': 'decimal',
 };
 
 export const transformFileContent = (fileContent: string): ProjectData => {
