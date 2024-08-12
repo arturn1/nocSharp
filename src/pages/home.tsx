@@ -5,9 +5,10 @@ import { useProjectName } from '../hooks/useProjectName';
 import EntityForm from '../components/EntityForm';
 import FileUpload from '../components/FileUpload';
 import ProjectForm from '../components/ProjectForm';
-import { createProject } from '../services/ProjectService';
+import { checkEntityExists, createProject } from '../services/ProjectService';
 import { readFile } from '../services/FileService';
 import { RcFile } from 'antd/es/upload';
+import { Entity } from '../models/Entity';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -15,24 +16,85 @@ const { Option } = Select;
 const Home: React.FC = () => {
   const { projectName, setProjectName } = useProjectName();
   const { entities, setEntities, addEntity, updateEntityName, addProperty, updateProperty, removeProperty, removeEntity } = useEntities();
-  
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [directoryPath, setDirectoryPath] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [executeCommands, setExecuteCommands] = useState(true);
   const [isExistingProject, setIsExistingProject] = useState(false);
+  const [existingEntities, setExistingEntities] = useState<Entity[]>([]);
+  const [overwriteChoices, setOverwriteChoices] = useState<Record<string, boolean>>({});
 
   const handleCreateProject = () => {
+    // Abre o modal para confirmação de criação do projeto
     setIsModalVisible(true);
   };
 
+  const handleConfirmOverwrite = () => {
+    // Filtra as entidades, mantendo apenas as que devem ser sobrescritas ou que não existiam anteriormente
+    const filteredEntities = entities.filter(entity =>
+      !existingEntities.includes(entity) || overwriteChoices[entity.name]
+    );
+
+    // Atualiza a lista de entidades a serem criadas ou sobrescritas
+    const projectData = { projectName, entities: filteredEntities };
+
+    // Continua com a criação ou atualização do projeto
+    proceedWithProjectCreation();
+  };
+
   const handleOk = async () => {
+    // Verifica se um diretório foi selecionado
     if (!directoryPath) {
       message.error('Please select a directory first.');
       return;
     }
-    const projectData = { projectName, entities };
+
+    // Se for um projeto existente, verifica as entidades
+    if (isExistingProject) {
+      const existingEntitiesList: Entity[] = [];
+
+      for (const entity of entities) {
+        const exists = await checkEntityExists(directoryPath, entity.name);
+        if (exists) {
+          existingEntitiesList.push(entity);
+        }
+      }
+
+      if (existingEntitiesList.length > 0) {
+        // Se entidades existentes forem encontradas, exibe o modal para sobrescrita
+        setExistingEntities(existingEntitiesList);
+        const initialChoices: Record<string, boolean> = {};
+        entities.forEach(entity => {
+          if (existingEntitiesList.includes(entity)) {
+            initialChoices[entity.name] = false; // Default to not overwrite
+          } else {
+            initialChoices[entity.name] = true; // New entities default to create
+          }
+        });
+        setOverwriteChoices(initialChoices);
+        return; // Pausar para exibir o modal de confirmação
+      }
+    }
+
+
+    // Se for um novo projeto ou nenhuma entidade existente for encontrada, prossegue com a criação
+    proceedWithProjectCreation();
+  };
+
+  const proceedWithProjectCreation = async () => {
+    // eslint-disable-next-line no-debugger
+    let filteredEntities: Entity[] = [];
+    if (isExistingProject) {
+      filteredEntities = entities.filter(entity =>
+        overwriteChoices[entity.name]
+      );
+    } else {
+      filteredEntities = entities;
+    }
+
+    const projectData = { projectName, entities: filteredEntities };
     const result = await createProject(projectData, directoryPath, executeCommands, isExistingProject);
     setLogs(result.logs);
     setErrors(result.errors);
@@ -40,9 +102,23 @@ const Home: React.FC = () => {
     if (result.success) {
       message.success(isExistingProject ? 'Entities added successfully' : 'Project created successfully');
       setIsModalVisible(false);
+      setExistingEntities([]);
+      setOverwriteChoices({});
     } else {
       message.error('Failed to process request');
     }
+  };
+
+  const handleCancelOverwrite = () => {
+    setExistingEntities([]);
+    setOverwriteChoices({});
+  };
+
+  const handleOverwriteChoiceChange = (entityName: string, value: boolean) => {
+    setOverwriteChoices(prevChoices => ({
+      ...prevChoices,
+      [entityName]: value,
+    }));
   };
 
   const handleCancel = () => {
@@ -118,7 +194,7 @@ const Home: React.FC = () => {
       </Form>
       <Modal
         title="Select Directory"
-        visible={isModalVisible}
+        open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
         okButtonProps={{ disabled: !directoryPath }}
@@ -127,6 +203,38 @@ const Home: React.FC = () => {
           <Input value={directoryPath} readOnly />
         </Form.Item>
       </Modal>
+
+      <Modal
+        title="Entities Exist"
+        open={existingEntities.length > 0}
+        onOk={handleConfirmOverwrite}
+        onCancel={handleCancelOverwrite}
+      >
+        <Text>The following entities already exist:</Text>
+        <Form layout="vertical">
+          {existingEntities.map((entity, index) => (
+            <Form.Item key={index} label={entity.name}>
+              <Select
+                value={overwriteChoices[entity.name]}
+                onChange={(value) => handleOverwriteChoiceChange(entity.name, value)}
+              >
+                <Option value={false}>Keep Existing</Option>
+                <Option value={true}>Overwrite</Option>
+              </Select>
+            </Form.Item>
+          ))}
+          <Text>The following entities will be created:</Text>
+          {entities.filter(entity => !existingEntities.includes(entity)).map((entity, index) => (
+            <Form.Item key={index} label={entity.name}>
+              <Select value={true} disabled>
+                <Option value={true}>Create</Option>
+              </Select>
+            </Form.Item>
+          ))}
+        </Form>
+        <Text>Do you want to overwrite the selected entities?</Text>
+      </Modal>
+
       <div style={{ marginTop: '20px' }}>
         <Title level={4}>Execution Logs</Title>
         {logs.map((log, index) => (

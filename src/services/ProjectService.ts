@@ -31,6 +31,7 @@ export const createProject = async (
     }
 
     for (const entity of entities) {
+      console.log('createProject:' + entities);
       if (entity.name) {
         const fields = entity.properties
           .map(prop => `${prop.name}:${prop.type}`)
@@ -53,5 +54,14 @@ export const createProject = async (
   } catch (error) {
     errors.push(`Error: ${error.message}`);
     return { success: false, logs, errors };
+  }
+};
+
+export const checkEntityExists = async (projectPath: string, entityName: string): Promise<boolean> => {
+  try {
+    const path = await window.electron.checkEntityExists(projectPath, entityName);
+    return path
+  } catch (error) {
+    return false
   }
 };

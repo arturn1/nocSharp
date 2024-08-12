@@ -1,6 +1,9 @@
-import { app, BrowserWindow , dialog, ipcMain} from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'path';
+import { capitalizeFirstLetter } from './utils/capitalize';
 const { exec } = require('child_process');
+const fs = require('fs');
+
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -67,6 +70,14 @@ ipcMain.handle('execute-command', async (event, command) => {
 ipcMain.handle('show-open-dialog', async (event, options) => {
   const result = await dialog.showOpenDialog(options);
   return result;
+});
+
+ipcMain.handle('check-entity-exists', async (event, projectPath, entityName) => {
+  return new Promise((resolve, reject) => {
+    const entityFilePath = path.join(projectPath, 'Domain', 'Entities', `${capitalizeFirstLetter(entityName)}Entity.cs`);
+    const exists = fs.existsSync(entityFilePath);
+    resolve(exists);
+  });
 });
 
 // In this file you can include the rest of your app's specific main process
