@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Typography, message, Button, Form, Modal, Input, Select } from 'antd';
+import { Typography, message, Button, Form, Modal, Input, Select, Checkbox } from 'antd';
 import { useEntities } from '../hooks/useEntities';
 import { useProjectName } from '../hooks/useProjectName';
 import EntityForm from '../components/EntityForm';
@@ -13,6 +13,8 @@ import { Entity } from '../models/Entity';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+type ComponentKey = 'projectForm' | 'fileUpload' | 'entityForm' | 'executeCommands';
+
 const Home: React.FC = () => {
   const { projectName, setProjectName } = useProjectName();
   const { entities, setEntities, addEntity, updateEntityName, addProperty, updateProperty, removeProperty, removeEntity } = useEntities();
@@ -25,33 +27,40 @@ const Home: React.FC = () => {
   const [isExistingProject, setIsExistingProject] = useState(false);
   const [existingEntities, setExistingEntities] = useState<Entity[]>([]);
   const [overwriteChoices, setOverwriteChoices] = useState<Record<string, boolean>>({});
+  const [enabledComponents, setEnabledComponents] = useState<Record<ComponentKey, boolean>>({
+    projectForm: true,
+    fileUpload: true,
+    entityForm: true,
+    executeCommands: true,
+  });
+
+  const handleToggleComponent = (component: ComponentKey) => {
+    setEnabledComponents(prevState => ({
+      ...prevState,
+      [component]: !prevState[component],
+    }));
+  };
 
   const handleCreateProject = () => {
-    // Abre o modal para confirmação de criação do projeto
     setIsModalVisible(true);
   };
 
   const handleConfirmOverwrite = () => {
-    // Filtra as entidades, mantendo apenas as que devem ser sobrescritas ou que não existiam anteriormente
     const filteredEntities = entities.filter(entity =>
       !existingEntities.includes(entity) || overwriteChoices[entity.name]
     );
 
-    // Atualiza a lista de entidades a serem criadas ou sobrescritas
     const projectData = { projectName, entities: filteredEntities };
 
-    // Continua com a criação ou atualização do projeto
     proceedWithProjectCreation();
   };
 
   const handleOk = async () => {
-    // Verifica se um diretório foi selecionado
     if (!directoryPath) {
       message.error('Please select a directory first.');
       return;
     }
 
-    // Se for um projeto existente, verifica as entidades
     if (isExistingProject) {
       const existingEntitiesList: Entity[] = [];
 
@@ -63,36 +72,27 @@ const Home: React.FC = () => {
       }
 
       if (existingEntitiesList.length > 0) {
-        // Se entidades existentes forem encontradas, exibe o modal para sobrescrita
         setExistingEntities(existingEntitiesList);
         const initialChoices: Record<string, boolean> = {};
         entities.forEach(entity => {
           if (existingEntitiesList.includes(entity)) {
-            initialChoices[entity.name] = false; // Default to not overwrite
+            initialChoices[entity.name] = false;
           } else {
-            initialChoices[entity.name] = true; // New entities default to create
+            initialChoices[entity.name] = true;
           }
         });
         setOverwriteChoices(initialChoices);
-        return; // Pausar para exibir o modal de confirmação
+        return;
       }
     }
 
-
-    // Se for um novo projeto ou nenhuma entidade existente for encontrada, prossegue com a criação
     proceedWithProjectCreation();
   };
 
   const proceedWithProjectCreation = async () => {
-    // eslint-disable-next-line no-debugger
-    let filteredEntities: Entity[] = [];
-    if (isExistingProject) {
-      filteredEntities = entities.filter(entity =>
-        overwriteChoices[entity.name]
-      );
-    } else {
-      filteredEntities = entities;
-    }
+    const filteredEntities = entities.filter(entity =>
+      overwriteChoices[entity.name]
+    );
 
     const projectData = { projectName, entities: filteredEntities };
     const result = await createProject(projectData, directoryPath, executeCommands, isExistingProject);
@@ -158,28 +158,62 @@ const Home: React.FC = () => {
       <Title level={2}>Create or Update Project</Title>
       <Form layout="vertical">
         <div style={{ marginBottom: '20px' }}>
-          <ProjectForm projectName={projectName} setProjectName={setProjectName} />
+          <Checkbox
+            checked={enabledComponents.projectForm}
+            onChange={() => handleToggleComponent('projectForm')}
+          >
+            Project Form
+          </Checkbox>
+          <Checkbox
+            checked={enabledComponents.fileUpload}
+            onChange={() => handleToggleComponent('fileUpload')}
+          >
+            File Upload
+          </Checkbox>
+          <Checkbox
+            checked={enabledComponents.entityForm}
+            onChange={() => handleToggleComponent('entityForm')}
+          >
+            Entity Form
+          </Checkbox>
+          <Checkbox
+            checked={enabledComponents.executeCommands}
+            onChange={() => handleToggleComponent('executeCommands')}
+          >
+            Execute Commands
+          </Checkbox>
         </div>
-        <div style={{ marginBottom: '20px' }}>
-          <FileUpload onFileUpload={handleFileUpload} />
-        </div>
-        <div style={{ marginBottom: '20px' }}>
-          <EntityForm
-            entities={entities}
-            addEntity={addEntity}
-            updateEntityName={updateEntityName}
-            addProperty={addProperty}
-            updateProperty={updateProperty}
-            removeProperty={removeProperty}
-            removeEntity={removeEntity}
-          />
-        </div>
-        <Form.Item label="Execute Commands">
-          <Select value={executeCommands ? 'yes' : 'no'} onChange={(value) => setExecuteCommands(value === 'yes')}>
-            <Option value="yes">Yes</Option>
-            <Option value="no">No</Option>
-          </Select>
-        </Form.Item>
+        {enabledComponents.projectForm && (
+          <div style={{ marginBottom: '20px' }}>
+            <ProjectForm projectName={projectName} setProjectName={setProjectName} />
+          </div>
+        )}
+        {enabledComponents.fileUpload && (
+          <div style={{ marginBottom: '20px' }}>
+            <FileUpload onFileUpload={handleFileUpload} />
+          </div>
+        )}
+        {enabledComponents.entityForm && (
+          <div style={{ marginBottom: '20px' }}>
+            <EntityForm
+              entities={entities}
+              addEntity={addEntity}
+              updateEntityName={updateEntityName}
+              addProperty={addProperty}
+              updateProperty={updateProperty}
+              removeProperty={removeProperty}
+              removeEntity={removeEntity}
+            />
+          </div>
+        )}
+        {enabledComponents.executeCommands && (
+          <Form.Item label="Execute Commands">
+            <Select value={executeCommands ? 'yes' : 'no'} onChange={(value) => setExecuteCommands(value === 'yes')}>
+              <Option value="yes">Yes</Option>
+              <Option value="no">No</Option>
+            </Select>
+          </Form.Item>
+        )}
         {projectName && entities.length > 0 && (
           <Button type="primary" onClick={handleCreateProject} style={{ marginTop: '20px', marginRight: '10px' }}>
             {isExistingProject ? 'Add Entities to Project' : 'Create Project'}
