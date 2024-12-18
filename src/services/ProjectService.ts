@@ -36,7 +36,7 @@ export const createProject = async (
         const fields = entity.properties
           .map(prop => `${prop.name}:${prop.type}`)
           .join(' ');
-        const createEntityCommand = `cd "${projectPath}" && nc s "${entity.name}" ${fields}`;
+        const createEntityCommand = `cd "${projectPath}" && nc s "${entity.name}" ${fields} -y`;
         logs.push(`Executing: ${createEntityCommand}`);
         commands.push(createEntityCommand);
         if (executeCommands) {

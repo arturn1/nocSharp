@@ -10,26 +10,52 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
-const createWindow = () => {
-  // Create the browser window.
+const createWindow = async () => {
+  // Verifica se o pacote 'nocsharp' está instalado
+  const isPackageInstalled = () => {
+    try {
+      require.resolve('nocsharp');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Instala o pacote 'nocsharp' se não estiver instalado
+  if (!isPackageInstalled()) {
+    exec('npm install nocsharp', (error: { message: any; }, stdout: any, stderr: any) => {
+      if (error) {
+        console.error(`Erro ao instalar o pacote: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`Erro: ${stderr}`);
+        return;
+      }
+      console.log(`Pacote instalado: ${stdout}`);
+    });
+  }
+
+  // Cria a janela do navegador
   const mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1400,
     height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  // and load the index.html of the app.
+  // Carrega o index.html da aplicação
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  // Abre as DevTools
+  mainWindow.webContents.openDevTools();
 };
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -74,7 +100,7 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
 
 ipcMain.handle('check-entity-exists', async (event, projectPath, entityName) => {
   return new Promise((resolve, reject) => {
-    const entityFilePath = path.join(projectPath, 'Domain', 'Entities', `${capitalizeFirstLetter(entityName)}Entity.cs`);
+    const entityFilePath = path.join(projectPath, 'Core', 'Entities', `${capitalizeFirstLetter(entityName)}Entity.cs`);
     const exists = fs.existsSync(entityFilePath);
     resolve(exists);
   });

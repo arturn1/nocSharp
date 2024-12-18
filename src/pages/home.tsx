@@ -66,6 +66,7 @@ const Home: React.FC = () => {
 
       for (const entity of entities) {
         const exists = await checkEntityExists(directoryPath, entity.name);
+        console.log('ex',exists)
         if (exists) {
           existingEntitiesList.push(entity);
         }
@@ -90,9 +91,13 @@ const Home: React.FC = () => {
   };
 
   const proceedWithProjectCreation = async () => {
-    const filteredEntities = entities.filter(entity =>
-      overwriteChoices[entity.name]
-    );
+
+    const filteredEntities = isExistingProject ? entities.filter(entity => overwriteChoices[entity.name]) : entities;
+
+    console.log(JSON.stringify(filteredEntities,null, 2));
+    console.log(JSON.stringify(entities,null, 2));
+
+
 
     const projectData = { projectName, entities: filteredEntities };
     const result = await createProject(projectData, directoryPath, executeCommands, isExistingProject);
@@ -141,6 +146,7 @@ const Home: React.FC = () => {
       const result = await window.electron.dialog.showOpenDialog({
         properties: ['openDirectory'],
       });
+      console.log('res', result)
       if (!result.canceled && result.filePaths.length > 0) {
         setDirectoryPath(result.filePaths[0]);
         setIsExistingProject(existingProject);
@@ -156,6 +162,7 @@ const Home: React.FC = () => {
   return (
     <div style={{ padding: '20px' }}>
       <Title level={2}>Create or Update Project</Title>
+
       <Form layout="vertical">
         <div style={{ marginBottom: '20px' }}>
           <Checkbox
@@ -226,6 +233,7 @@ const Home: React.FC = () => {
           Select Directory for Existing Project
         </Button>
       </Form>
+
       <Modal
         title="Select Directory"
         open={isModalVisible}
