@@ -38,7 +38,7 @@ const createWindow = async () => {
 
   // Cria a janela do navegador
   const mainWindow = new BrowserWindow({
-    width: 1400,
+    width: 1200,
     height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -53,7 +53,7 @@ const createWindow = async () => {
   }
 
   // Abre as DevTools
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 };
 
 
