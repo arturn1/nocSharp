@@ -69,11 +69,7 @@ export const useFileManagement = () => {
     message.success('Recent directories cleared');
   };
 
-  const exportProjectConfiguration = () => {
-    // This could be implemented to export current project configuration
-    // as JSON for later import
-    console.log('Export functionality to be implemented');
-  };
+
 
   const importProjectConfiguration = async (file: File) => {
     try {
@@ -102,7 +98,6 @@ export const useFileManagement = () => {
     openDirectorySelector,
     selectRecentDirectory,
     clearRecentDirectories,
-    exportProjectConfiguration,
     importProjectConfiguration,
   };
 };

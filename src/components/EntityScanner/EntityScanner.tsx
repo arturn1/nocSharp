@@ -112,12 +112,6 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
       !scannedEntities.some(scanned => scanned.name === entity.name)
     );
     
-    console.log('🔍 Update Project - Showing comparison:', { 
-      existing: existingEntitiesInProject, 
-      new: newEntitiesForProject,
-      projectPath: projectInfo?.path 
-    });
-    
     // Usar a mesma função que o botão "View Entities Comparison"
     if (onShowEntitiesComparison) {
       onShowEntitiesComparison(existingEntitiesInProject, newEntitiesForProject);

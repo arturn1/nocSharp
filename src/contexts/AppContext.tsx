@@ -40,8 +40,6 @@ const initialState: AppState = {
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
-  console.log('🔄 AppReducer Action:', action.type, 'payload' in action ? action.payload : 'no payload');
-  console.log('📊 Current State:', state);
   
   let newState: AppState;
   
@@ -100,7 +98,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
       newState = state;
   }
   
-  console.log('✅ New State:', newState);
   return newState;
 }
 

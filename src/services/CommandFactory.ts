@@ -38,9 +38,6 @@ export class CommandFactory {
           
           const result = hasComplexType ? `"${fieldDefinition}"` : fieldDefinition;
           
-          // Log para debugging
-          console.log(`🔧 Property: ${prop.name}, Type: ${typeStr}, Complex: ${hasComplexType}, Result: ${result}`);
-          
           return result;
         })
         .join(' ');

@@ -77,11 +77,9 @@ const Home: React.FC = () => {
   useEffect(() => {
     const refreshProjectEntities = async () => {
       if (activeMenu === 'entities' && state.directoryPath && state.isExistingProject) {
-        console.log('🔄 Refreshing project entities for path:', state.directoryPath);
         try {
           const scanResult = await scanExistingEntities(state.directoryPath);
           if (scanResult.success && scanResult.entities.length > 0) {
-            console.log('✅ Updated entities from project:', scanResult.entities);
             // Merge with existing entities to keep any new ones added manually
             const updatedEntities = [...scanResult.entities];
             
@@ -98,7 +96,6 @@ const Home: React.FC = () => {
             setHasEntityChanges(false);
           }
         } catch (error) {
-          console.error('❌ Error refreshing project entities:', error);
         }
       }
     };
@@ -141,13 +138,11 @@ const Home: React.FC = () => {
   };
 
   const handleShowEntitiesComparison = (existingEntities: Entity[], newEntities: Entity[]) => {
-    console.log('🔍 Showing entities comparison:', { existingEntities, newEntities });
     setEntitiesComparison({ existing: existingEntities, new: newEntities });
     setShowEntitiesModal(true);
   };
 
   const handleShowScannerModal = (existingEntities: Entity[], newEntities: Entity[]) => {
-    console.log('🔍 Opening Scanner Modal with entities:', { existingEntities, newEntities });
     
     // Gerar comandos baseados nas novas entidades
     const commands = CommandFactory.generateCommands(newEntities, {
@@ -167,8 +162,6 @@ const Home: React.FC = () => {
 
   const handleExecuteScannerCommands = async () => {
     setIsExecutingCommands(true);
-    console.log('🚀 Executing scanner commands:', scannerModalData.commands);
-    console.log('📂 Project path:', scannerModalData.projectPath);
 
     try {
       // Merge as novas entidades primeiro
@@ -176,8 +169,6 @@ const Home: React.FC = () => {
       
       // Executar os comandos no diretório do projeto
       for (const command of scannerModalData.commands) {
-        console.log('⚡ Executing command:', command);
-        console.log('📍 In directory:', scannerModalData.projectPath);
         
         if (state.executeCommands && scannerModalData.projectPath) {
           // Executar o comando no diretório correto usando cd
@@ -186,11 +177,9 @@ const Home: React.FC = () => {
         }
       }
       
-      console.log('✅ All commands executed successfully');
       setScannerModal(false);
       
     } catch (error) {
-      console.error('❌ Error executing commands:', error);
     } finally {
       setIsExecutingCommands(false);
     }
@@ -199,7 +188,6 @@ const Home: React.FC = () => {
   const handleUpdateModifiedEntities = async () => {
     if (!state.directoryPath || !hasEntityChanges) return;
 
-    console.log('🔄 Updating modified entities...');
     setIsExecutingCommands(true);
 
     try {
@@ -220,7 +208,6 @@ const Home: React.FC = () => {
         }
       });
 
-      console.log('📝 Modified entities:', modifiedEntities);
 
       if (modifiedEntities.length > 0) {
         // Gerar comandos apenas para entidades modificadas
@@ -229,11 +216,9 @@ const Home: React.FC = () => {
           overwriteChoices: {},
         });
 
-        console.log('⚡ Commands to execute:', commands);
 
         // Executar comandos no diretório correto
         for (const command of commands) {
-          console.log('🔧 Executing:', command);
           if (state.executeCommands) {
             const fullCommand = `cd "${state.directoryPath}" && ${command}`;
             await window.electron.executeCommand(fullCommand);
@@ -244,7 +229,6 @@ const Home: React.FC = () => {
         setOriginalEntities(JSON.parse(JSON.stringify(nonBaseEntities)));
         setHasEntityChanges(false);
         
-        console.log('✅ Entities updated successfully');
         
         // Adicionar log de sucesso
         dispatch({ 
@@ -253,16 +237,12 @@ const Home: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('❌ Error updating entities:', error);
     } finally {
       setIsExecutingCommands(false);
     }
   };
 
   const handleUpdateProjectFromScanner = async (newEntities: Entity[]) => {
-    console.log('🚀 Starting project update with entities:', newEntities);
-    console.log('📊 Current state entities:', entities);
-    console.log('🔄 Existing project status:', state.isExistingProject);
     
     if (newEntities.length > 0) {
       // Verificar se é projeto existente e se há entidades já carregadas
@@ -276,11 +256,6 @@ const Home: React.FC = () => {
         const reallyNewEntities = newEntities.filter(entity => 
           !entities.some(existing => existing.name === entity.name)
         );
-        
-        console.log('🔍 Showing scanner modal with:', { 
-          existing: scannedEntities, 
-          new: reallyNewEntities 
-        });
         
         // Mostrar modal do scanner com entidades existentes e novas
         handleShowScannerModal(scannedEntities, reallyNewEntities);

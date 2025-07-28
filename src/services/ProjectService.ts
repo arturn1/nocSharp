@@ -17,7 +17,6 @@ const executeCommandWithTimeout = async (command: string, timeoutMs: number = 50
       reject(new Error(`Command timed out after ${timeoutMs / 1000} seconds: ${command}`));
     }, timeoutMs);
 
-    console.log(command);
     window.electron.executeCommand(command)
       .then(() => {
         clearTimeout(timeoutId);
