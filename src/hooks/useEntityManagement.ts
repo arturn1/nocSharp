@@ -5,12 +5,8 @@ import { Property } from '../models/Property';
 export const useEntityManagement = () => {
   const { state, dispatch } = useAppContext();
 
-  const addEntity = () => {
-    const newEntity: Entity = {
-      name: '',
-      properties: []
-    };
-    dispatch({ type: 'ADD_ENTITY', payload: newEntity });
+  const addEntity = (entity: Entity) => {
+    dispatch({ type: 'ADD_ENTITY', payload: entity });
   };
 
   const updateEntityName = (index: number, name: string) => {
@@ -27,17 +23,11 @@ export const useEntityManagement = () => {
     dispatch({ type: 'REMOVE_ENTITY', payload: index });
   };
 
-  const addProperty = (entityIndex: number) => {
-    const newProperty: Property = {
-      name: '',
-      type: 'string',
-      collectionType: 'none'
-    };
-    
+  const addProperty = (entityIndex: number, property: Property) => {
     const entity = state.entities[entityIndex];
     const updatedEntity = {
       ...entity,
-      properties: [...entity.properties, newProperty]
+      properties: [...entity.properties, property]
     };
     
     dispatch({ type: 'UPDATE_ENTITY', payload: { index: entityIndex, entity: updatedEntity } });

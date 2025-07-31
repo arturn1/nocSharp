@@ -11,6 +11,15 @@ export class HomePageService {
     mergeEntities: (entities: Entity[], replace: boolean) => void,
     setOriginalEntities: (entities: Entity[]) => void
   ) {
+    // Se não há entidades atuais ou se é um recarregamento completo, 
+    // substituir todas as entidades
+    if (entities.length === 0 || scannedEntities.length !== entities.length) {
+      mergeEntities(scannedEntities, true); // true = replace all
+      setOriginalEntities(JSON.parse(JSON.stringify(scannedEntities)));
+      return;
+    }
+    
+    // Caso contrário, fazer merge inteligente
     const mergedEntities = ProjectManager.mergeEntities(entities, scannedEntities);
     
     if (!EntityChangeDetector.compareEntityLists(entities, mergedEntities)) {

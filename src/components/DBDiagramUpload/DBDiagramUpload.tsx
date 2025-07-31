@@ -55,19 +55,10 @@ const DBDiagramUpload: React.FC<DBDiagramUploadProps> = ({
 
       const entities = parseResult.entities;
 
-      // Verificar duplicatas automaticamente antes de carregar as entidades
-      if (onEntityComparison && existingEntities.length > 0) {
-        const hasDuplicates = onEntityComparison(entities, existingEntities);
-        if (hasDuplicates) {
-          setSuccess(`${entities.length} entidades carregadas. Duplicatas detectadas - resolva no modal.`);
-          return false; // Prevent default upload
-        }
-      }
-
       // Callback com as entidades carregadas
       const projectName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
       onEntitiesLoaded(entities, projectName);
-      setSuccess(`${entities.length} entidades carregadas com sucesso!`);
+      setSuccess(`${entities.length} entidades carregadas com sucesso! Configure-as em "Configuração de Entidades" e clique em "Update Project".`);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido ao processar arquivo';

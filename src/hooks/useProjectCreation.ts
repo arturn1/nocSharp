@@ -36,16 +36,23 @@ export const useProjectCreation = () => {
       return [];
     }
     
-    const duplicates = newEntities.filter(newEntity =>
-      existingEntities.some(existingEntity => 
-        existingEntity.name && newEntity.name &&
-        existingEntity.name.toLowerCase().trim() === newEntity.name.toLowerCase().trim()
-      )
-    );
-    
-    if (duplicates.length > 0) {
-      console.log('Duplicates found:', duplicates.map(e => e.name));
-    }
+    const duplicates = newEntities.filter(newEntity => {
+      if (!newEntity.name || !newEntity.name.trim()) {
+        return false;
+      }
+      
+      return existingEntities.some(existingEntity => {
+        if (!existingEntity.name || !existingEntity.name.trim()) {
+          return false;
+        }
+        
+        const newName = newEntity.name.toLowerCase().trim();
+        const existingName = existingEntity.name.toLowerCase().trim();
+        
+        // Comparação exata de nomes
+        return newName === existingName;
+      });
+    });
     
     return duplicates;
   };

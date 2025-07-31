@@ -19,6 +19,7 @@ import HomePage from './HomePage';
 import ImportPage from './ImportPage';
 import ScannerPage from './ScannerPage';
 import TemplatesPage from './TemplatesPage';
+import DotNetDashboard from './DotNetDashboard/DotNetDashboard';
 import ModalsManager from '../components/ModalsManager';
 import ProjectModal from '../components/ProjectModal';
 
@@ -39,6 +40,7 @@ const Home: React.FC = () => {
   const [isExecutingCommands, setIsExecutingCommands] = useState<boolean>(false);
   const [originalEntities, setOriginalEntities] = useState<Entity[]>([]);
   const [hasEntityChanges, setHasEntityChanges] = useState<boolean>(false);
+  const [scannerRefreshTrigger, setScannerRefreshTrigger] = useState<number>(0);
   
   const { state, dispatch } = useAppContext();
   const { 
@@ -84,22 +86,29 @@ const Home: React.FC = () => {
     dispatch({ type: 'SET_ENTITIES', payload: templateEntities });
   };
 
-  const handleShowEntitiesComparison = (existingEntities: Entity[], newEntities: Entity[]) => {
-    const comparisonData = UIStateManager.createEntityComparisonModal(existingEntities, newEntities);
-    setEntitiesComparison(comparisonData);
-    setShowEntitiesModal(true);
-  };
-
-  const handleShowScannerModal = (existingEntities: Entity[], newEntities: Entity[]) => {
-    const commands = CommandFactory.generateCommands(newEntities, {
+  const handleShowScannerModal = (modifiedEntities: Entity[], newEntities: Entity[]) => {
+    // Gerar comandos para entidades novas
+    const newEntityCommands = CommandFactory.generateCommands(newEntities, {
       isExistingProject: state.isExistingProject,
       overwriteChoices: {},
     });
+    
+    // Gerar comandos para entidades modificadas (usando overwrite)
+    const modifiedEntityCommands = CommandFactory.generateCommands(modifiedEntities, {
+      isExistingProject: state.isExistingProject,
+      overwriteChoices: modifiedEntities.reduce((acc, entity) => {
+        acc[entity.name] = true; // Force overwrite for modified entities
+        return acc;
+      }, {} as Record<string, boolean>),
+    });
+    
+    // Combinar todos os comandos
+    const allCommands = [...modifiedEntityCommands, ...newEntityCommands];
 
     const modalData = UIStateManager.createScannerModal(
-      existingEntities,
-      newEntities,
-      commands,
+      modifiedEntities, // Entidades modificadas
+      newEntities,      // Entidades novas
+      allCommands,
       state.projectName || 'Projeto',
       state.directoryPath || ''
     );
@@ -112,6 +121,11 @@ const Home: React.FC = () => {
     setIsExecutingCommands(true);
 
     try {
+      console.log('🚀 Iniciando execução de comandos do scanner modal...');
+      console.log('📋 Comandos a executar:', scannerModalData.commands.length);
+      console.log('📝 Entidades modificadas:', scannerModalData.existingEntities.length);
+      console.log('🆕 Entidades novas:', scannerModalData.newEntities.length);
+
       mergeEntities(scannerModalData.newEntities, false);
       
       const projectContext: ProjectContext = {
@@ -124,18 +138,28 @@ const Home: React.FC = () => {
       const result = await ProjectManager.executeCommands(scannerModalData.commands, projectContext);
       
       if (result.success) {
+        console.log('✅ Comandos executados com sucesso! Iniciando processo de fechamento e reload...');
+        
+        // Fechar o modal imediatamente após sucesso
         setScannerModal(false);
+        console.log('❌ Modal fechado');
+        
+        // Forçar refresh do EntityScanner
+        setScannerRefreshTrigger(prev => {
+          console.log('🔄 Incrementando refreshTrigger de', prev, 'para', prev + 1);
+          return prev + 1;
+        });
         
         // Recarregar o projeto após a execução dos comandos
         if (state.directoryPath) {
           try {
-            console.log('Recarregando projeto após atualização...');
+            console.log('🔄 Recarregando projeto após atualização...');
             const { scanExistingEntities, getProjectMetadata } = await import('../services/EntityScanService');
             
             // Reescanear as entidades do projeto
             const scanResult = await scanExistingEntities(state.directoryPath);
             if (scanResult.success) {
-              console.log('Projeto recarregado com sucesso:', scanResult.entities.length, 'entidades encontradas');
+              console.log('✅ Projeto recarregado com sucesso:', scanResult.entities.length, 'entidades encontradas');
               
               // Atualizar as entidades no estado global
               mergeEntities(scanResult.entities, true); // true para substituir completamente
@@ -143,23 +167,51 @@ const Home: React.FC = () => {
               // Recarregar os metadados do projeto
               const metadata = await getProjectMetadata(state.directoryPath);
               if (metadata.projectName) {
-                console.log('Metadados do projeto atualizados:', metadata.projectName);
+                console.log('📄 Metadados do projeto atualizados:', metadata.projectName);
               }
+              
+              // Mostrar mensagem de sucesso
+              const modifiedCount = scannerModalData.existingEntities.length;
+              const newCount = scannerModalData.newEntities.length;
+              let successMessage = 'Projeto atualizado com sucesso!';
+              
+              if (modifiedCount > 0 && newCount > 0) {
+                successMessage = `Projeto atualizado: ${modifiedCount} modificadas, ${newCount} novas entidades`;
+              } else if (modifiedCount > 0) {
+                successMessage = `Projeto atualizado: ${modifiedCount} entidades modificadas`;
+              } else if (newCount > 0) {
+                successMessage = `Projeto atualizado: ${newCount} novas entidades adicionadas`;
+              }
+              
+              // Importar message dinamicamente para evitar problemas
+              const { message } = await import('antd');
+              message.success(successMessage);
+              console.log('💬 Mensagem de sucesso exibida:', successMessage);
+              
             } else {
-              console.warn('Falha ao recarregar projeto:', scanResult.errors);
+              console.warn('⚠️ Falha ao recarregar projeto:', scanResult.errors);
+              const { message } = await import('antd');
+              message.warning('Comandos executados, mas houve problemas ao recarregar o projeto');
             }
           } catch (reloadError) {
-            console.error('Erro ao recarregar projeto:', reloadError);
+            console.error('❌ Erro ao recarregar projeto:', reloadError);
+            const { message } = await import('antd');
+            message.error('Comandos executados, mas falha ao recarregar projeto');
           }
         }
       } else {
-        console.error('Failed to execute commands:', result.error);
+        console.error('❌ Failed to execute commands:', result.error);
+        const { message } = await import('antd');
+        message.error(`Erro ao executar comandos: ${result.error}`);
       }
       
     } catch (error) {
-      console.error('Error executing scanner commands:', error);
+      console.error('❌ Error executing scanner commands:', error);
+      const { message } = await import('antd');
+      message.error(`Erro inesperado: ${error.message}`);
     } finally {
       setIsExecutingCommands(false);
+      console.log('🏁 Processo de execução de comandos finalizado');
     }
   };
 
@@ -301,6 +353,13 @@ const Home: React.FC = () => {
           />
         );
 
+      case 'dashboard':
+        return (
+          <DotNetDashboard 
+            projectPath={state.directoryPath}
+          />
+        );
+
       case 'import':
         return (
           <ImportPage
@@ -335,6 +394,7 @@ const Home: React.FC = () => {
             removeProperty={removeProperty}
             removeEntity={removeEntity}
             onUpdateModifiedEntities={handleUpdateModifiedEntities}
+            refreshTrigger={scannerRefreshTrigger}
           />
         );
 

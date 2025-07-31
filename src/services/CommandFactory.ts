@@ -101,4 +101,27 @@ export class CommandFactory {
     
     return commands.join('\n');
   }
+
+  /**
+   * Gera comandos para remover entidades específicas
+   */
+  static generateCleanCommands(entityNames: string[], options?: { force?: boolean }): string[] {
+    const forceFlag = options?.force ? ' -y' : '';
+    return entityNames.map(entityName => `nocsharp clean "${entityName}"${forceFlag}`);
+  }
+
+  /**
+   * Gera comando para listar arquivos que seriam removidos
+   */
+  static generateCleanListCommands(entityNames: string[]): string[] {
+    return entityNames.map(entityName => `nocsharp clean "${entityName}" --list`);
+  }
+
+  /**
+   * Gera comando para remover todas as entidades
+   */
+  static generateCleanAllCommand(options?: { force?: boolean }): string {
+    const forceFlag = options?.force ? ' --yes' : '';
+    return `nocsharp clean --all${forceFlag}`;
+  }
 }

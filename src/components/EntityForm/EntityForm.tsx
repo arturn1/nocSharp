@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Input, Button, Space, Select, Table, Form, Popconfirm, Row, Col, Statistic, Switch, Collapse } from 'antd';
+import { Card, Input, Button, Space, Select, Table, Form, Popconfirm, Row, Col, Statistic, Switch, Collapse, Badge } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Entity } from '../../models/Entity';
 import { Property } from '../../models/Property';
@@ -17,6 +17,10 @@ interface EntityFormProps {
   removeEntity: (index: number) => void;
   hideAddButton?: boolean;
   collapsible?: boolean;
+  onCleanEntities?: (entityNames: string[]) => void;
+  projectPath?: string;
+  pendingDeletions?: string[];
+  scannedEntities?: Entity[]; // Para identificar entidades "new"
 }
 
 const EntityForm: React.FC<EntityFormProps> = ({
@@ -30,10 +34,38 @@ const EntityForm: React.FC<EntityFormProps> = ({
   removeEntity,
   hideAddButton = false,
   collapsible = true,
+  onCleanEntities,
+  projectPath,
+  pendingDeletions = [],
+  scannedEntities = [],
 }) => {
   const [newEntityName, setNewEntityName] = useState('');
   const [newProperty, setNewProperty] = useState<{ [key: number]: Property }>({});
   const [editingEntity, setEditingEntity] = useState<number | null>(null);
+
+  // Função para verificar se uma entidade é nova (não existe no projeto escaneado)
+  const isNewEntity = (entityName: string): boolean => {
+    // Se não há entidades escaneadas, não podemos determinar o que é novo
+    if (!scannedEntities || scannedEntities.length === 0) {
+      return false;
+    }
+    // Uma entidade é nova se não existe nas entidades escaneadas do projeto
+    return !scannedEntities.some(scanned => scanned.name === entityName);
+  };
+
+  // Função para garantir valores padrão no estado newProperty
+  const getNewPropertyForEntity = (entityIndex: number): Property => {
+    return newProperty[entityIndex] || { name: '', type: 'string', collectionType: '' };
+  };
+
+  // Função para atualizar propriedade com valores padrão garantidos
+  const updateNewProperty = (entityIndex: number, updates: Partial<Property>) => {
+    const currentProperty = getNewPropertyForEntity(entityIndex);
+    setNewProperty(prev => ({
+      ...prev,
+      [entityIndex]: { ...currentProperty, ...updates }
+    }));
+  };
 
   const handleAddEntity = () => {
     if (newEntityName.trim()) {
@@ -47,10 +79,14 @@ const EntityForm: React.FC<EntityFormProps> = ({
   };
 
   const handleAddProperty = (entityIndex: number) => {
-    const property = newProperty[entityIndex];
+    const property = getNewPropertyForEntity(entityIndex);
     if (property && property.name && property.type) {
       addProperty(entityIndex, property);
-      setNewProperty(prev => ({ ...prev, [entityIndex]: { name: '', type: 'string', collectionType: '' } }));
+      // Reset para valores padrão após adicionar
+      setNewProperty(prev => ({ 
+        ...prev, 
+        [entityIndex]: { name: '', type: 'string', collectionType: '' } 
+      }));
     }
   };
 
@@ -189,18 +225,50 @@ const EntityForm: React.FC<EntityFormProps> = ({
                   ) : (
                     <span onClick={(e) => { e.stopPropagation(); setEditingEntity(entityIndex); }}>
                       {entity.name} ({entity.properties.length} properties)
+                      {isNewEntity(entity.name) && (
+                        <Badge 
+                          count="NEW" 
+                          style={{ 
+                            marginLeft: 8, 
+                            backgroundColor: '#52c41a',
+                            fontSize: '10px',
+                            height: '18px',
+                            lineHeight: '18px'
+                          }} 
+                        />
+                      )}
                     </span>
                   )}
                 </span>
                 <div onClick={(e) => e.stopPropagation()}>
-                  <Popconfirm
-                    title="Remove this entity?"
-                    onConfirm={() => removeEntity(entityIndex)}
-                    okText="Yes"
-                    cancelText="No"
-                  >
-                    <Button icon={<DeleteOutlined />} size="small" danger />
-                  </Popconfirm>
+                  {onCleanEntities ? (
+                    <Popconfirm
+                      title={`Confirmar exclusão da entidade "${entity.name}"?`}
+                      description="Esta ação irá remover a entidade do projeto permanentemente."
+                      onConfirm={() => onCleanEntities([entity.name])}
+                      okText="Sim, excluir"
+                      cancelText="Cancelar"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button 
+                        icon={<DeleteOutlined />} 
+                        size="small" 
+                        danger 
+                        title={`Remover entidade ${entity.name} do projeto`}
+                        disabled={pendingDeletions.includes(entity.name)}
+                        loading={pendingDeletions.includes(entity.name)}
+                      />
+                    </Popconfirm>
+                  ) : (
+                    <Popconfirm
+                      title="Remove this entity?"
+                      onConfirm={() => removeEntity(entityIndex)}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button icon={<DeleteOutlined />} size="small" danger />
+                    </Popconfirm>
+                  )}
                 </div>
               </div>
             ),
@@ -223,23 +291,17 @@ const EntityForm: React.FC<EntityFormProps> = ({
                   <Form.Item>
                     <Input
                       placeholder="Property name"
-                      value={newProperty[entityIndex]?.name || ''}
+                      value={getNewPropertyForEntity(entityIndex).name}
                       onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => setNewProperty(prev => ({
-                        ...prev,
-                        [entityIndex]: { ...prev[entityIndex], name: e.target.value, type: prev[entityIndex]?.type || 'string', collectionType: prev[entityIndex]?.collectionType || '' }
-                      }))}
+                      onChange={(e) => updateNewProperty(entityIndex, { name: e.target.value })}
                     />
                   </Form.Item>
                   <Form.Item>
                     <Select
                       placeholder="Type"
-                      value={newProperty[entityIndex]?.type || 'string'}
+                      value={getNewPropertyForEntity(entityIndex).type}
                       onClick={(e) => e.stopPropagation()}
-                      onChange={(value) => setNewProperty(prev => ({
-                        ...prev,
-                        [entityIndex]: { ...prev[entityIndex], name: prev[entityIndex]?.name || '', type: value, collectionType: prev[entityIndex]?.collectionType || '' }
-                      }))}
+                      onChange={(value) => updateNewProperty(entityIndex, { type: value })}
                       style={{ width: 140 }}
                       showSearch
                       filterOption={(input, option) =>
@@ -267,12 +329,9 @@ const EntityForm: React.FC<EntityFormProps> = ({
                   <Form.Item>
                     <Select
                       placeholder="Collection"
-                      value={newProperty[entityIndex]?.collectionType || 'none'}
+                      value={getNewPropertyForEntity(entityIndex).collectionType || 'none'}
                       onClick={(e) => e.stopPropagation()}
-                      onChange={(value) => setNewProperty(prev => ({
-                        ...prev,
-                        [entityIndex]: { ...prev[entityIndex], name: prev[entityIndex]?.name || '', type: prev[entityIndex]?.type || 'string', collectionType: value === 'none' ? '' : value }
-                      }))}
+                      onChange={(value) => updateNewProperty(entityIndex, { collectionType: value === 'none' ? '' : value })}
                       style={{ width: 120 }}
                     >
                       <Option value="none">None</Option>
