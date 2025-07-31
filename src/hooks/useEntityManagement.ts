@@ -109,15 +109,6 @@ export const useEntityManagement = () => {
     }
   };
 
-  const duplicateEntity = (index: number) => {
-    const entityToDuplicate = state.entities[index];
-    const duplicatedEntity: Entity = {
-      name: `${entityToDuplicate.name}_Copy`,
-      properties: entityToDuplicate.properties.map(prop => ({ ...prop }))
-    };
-    dispatch({ type: 'ADD_ENTITY', payload: duplicatedEntity });
-  };
-
   const validateEntity = (entity: Entity): string[] => {
     const errors: string[] = [];
     
@@ -166,7 +157,6 @@ export const useEntityManagement = () => {
     addProperty,
     updateProperty,
     removeProperty,
-    duplicateEntity,
     validateEntity,
     validateAllEntities,
   };

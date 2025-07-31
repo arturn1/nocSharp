@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Typography, Space, Spin, Alert, Statistic, Row, Col } from 'antd';
-import { SearchOutlined, FolderOpenOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { SearchOutlined, FolderOpenOutlined, DatabaseOutlined, SettingOutlined } from '@ant-design/icons';
 import { Entity } from '../../models/Entity';
+import { Property } from '../../models/Property';
 import { scanExistingEntities, getProjectMetadata } from '../../services/EntityScanService';
 import DBDiagramUpload from '../DBDiagramUpload';
+import EntityForm from '../EntityForm';
 
 const { Title, Text } = Typography;
 
@@ -16,6 +18,22 @@ interface EntityScannerProps {
   existingEntities?: Entity[];
   onMergeEntities?: (newEntities: Entity[]) => void;
   onShowEntitiesComparison?: (existingEntities: Entity[], newEntities: Entity[]) => void;
+  // Novas props para gerenciamento de entidades
+  addEntity?: (entity: Entity) => void;
+  updateEntityName?: (index: number, newName: string) => void;
+  updateEntityBaseSkip?: (index: number, baseSkip: boolean) => void;
+  addProperty?: (entityIndex: number, property: any) => void;
+  updateProperty?: (entityIndex: number, propertyIndex: number, field: keyof Property, value: string) => void;
+  removeProperty?: (entityIndex: number, propertyIndex: number) => void;
+  removeEntity?: (index: number) => void;
+  onUpdateModifiedEntities?: () => void;
+  isExecutingCommands?: boolean;
+  hasEntityChanges?: boolean;
+  originalEntities?: Entity[];
+  // Props para auto-reload do projeto
+  currentProjectPath?: string;
+  isExistingProject?: boolean;
+  isVisible?: boolean; // Para detectar quando a tela está ativa
 }
 
 interface ProjectInfo {
@@ -33,7 +51,23 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
   onEntityComparison,
   existingEntities = [],
   onMergeEntities,
-  onShowEntitiesComparison
+  onShowEntitiesComparison,
+  // Props para gerenciamento de entidades
+  addEntity,
+  updateEntityName,
+  updateEntityBaseSkip,
+  addProperty,
+  updateProperty,
+  removeProperty,
+  removeEntity,
+  onUpdateModifiedEntities,
+  isExecutingCommands = false,
+  hasEntityChanges = false,
+  originalEntities = [],
+  // Props para auto-reload
+  currentProjectPath,
+  isExistingProject = false,
+  isVisible = false
 }) => {
   const [selectedPath, setSelectedPath] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -41,6 +75,54 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
   const [scannedEntities, setScannedEntities] = useState<Entity[]>([]);
   const [showProjectEntities, setShowProjectEntities] = useState<boolean>(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [isAutoLoading, setIsAutoLoading] = useState<boolean>(false);
+
+  // Auto-load project quando a tela estiver visível e houver um caminho
+  useEffect(() => {
+    const autoLoadProject = async () => {
+      if (isVisible && currentProjectPath && isExistingProject && !projectInfo) {
+        setIsAutoLoading(true);
+        setErrors([]);
+
+        try {
+          // Get project metadata first
+          const metadata = await getProjectMetadata(currentProjectPath);
+          setProjectInfo({
+            ...metadata,
+            path: currentProjectPath
+          });
+
+          // Scan for existing entities
+          const scanResult = await scanExistingEntities(currentProjectPath);
+
+          if (scanResult.success) {
+            setScannedEntities(scanResult.entities);
+            if (onLoadProject && metadata.projectName) {
+              onLoadProject(scanResult.entities, metadata.projectName);
+            }
+            // Carregar entidades existentes no gerenciador global
+            if (onEntitiesLoaded) {
+              onEntitiesLoaded(scanResult.entities);
+            }
+            
+            if (scanResult.entities.length === 0) {
+              setErrors(['No entities found in the selected project. Make sure you selected a valid nocsharp project directory.']);
+            }
+          } else {
+            setErrors(scanResult.errors);
+            setScannedEntities([]);
+          }
+        } catch (error) {
+          setErrors([`Failed to auto-load project: ${error.message}`]);
+          setScannedEntities([]);
+        } finally {
+          setIsAutoLoading(false);
+        }
+      }
+    };
+
+    autoLoadProject();
+  }, [isVisible, currentProjectPath, isExistingProject]); // Trigger quando a tela fica visível
 
   const handleScanDirectory = async () => {
     try {
@@ -118,6 +200,23 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
     }
   };
 
+  // Função para calcular entidades modificadas
+  const getModifiedEntitiesCount = () => {
+    if (originalEntities.length === 0) return 0;
+    
+    const nonBaseEntities = existingEntities.filter(entity => entity.name !== 'BaseEntity');
+    let modifiedCount = 0;
+    
+    nonBaseEntities.forEach(currentEntity => {
+      const originalEntity = originalEntities.find(orig => orig.name === currentEntity.name);
+      if (!originalEntity || JSON.stringify(currentEntity) !== JSON.stringify(originalEntity)) {
+        modifiedCount++;
+      }
+    });
+    
+    return modifiedCount;
+  };
+
   return (
     <Card
       title={
@@ -128,37 +227,54 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
       }
       size="small"
       extra={
-        <Button 
-          icon={<FolderOpenOutlined />}
-          onClick={handleScanDirectory}
-          loading={isScanning}
-          size="small"
-        >
-          Scan Project
-        </Button>
+        projectInfo ? (
+          <Button 
+            icon={<FolderOpenOutlined />}
+            onClick={handleScanDirectory}
+            loading={isScanning}
+            size="small"
+          >
+            Rescan Project
+          </Button>
+        ) : null
       }
     >
       <Space direction="vertical" style={{ width: '100%' }}>
-        {isScanning && (
+        {/* Auto-loading indicator */}
+        {isAutoLoading && (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: '8px' }}>
+              <Text type="secondary">Loading project from {currentProjectPath}...</Text>
+            </div>
+          </div>
+        )}
+
+        {/* Scan Project Button */}
+        {!projectInfo && !isAutoLoading && (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <Button 
+              icon={<FolderOpenOutlined />}
+              onClick={handleScanDirectory}
+              loading={isScanning}
+              size="large"
+              type="primary"
+            >
+              {isScanning ? 'Scanning...' : 'Scan Project'}
+            </Button>
+            <div style={{ marginTop: '8px' }}>
+              <Text type="secondary">Click to scan an existing nocSharp project</Text>
+            </div>
+          </div>
+        )}
+
+        {isScanning && !isAutoLoading && (
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <Spin />
             <div style={{ marginTop: '8px' }}>
               <Text type="secondary">Scanning project directory...</Text>
             </div>
           </div>
-        )}
-
-        {projectInfo && (
-          <Alert
-            type={projectInfo.isValid ? 'success' : 'warning'}
-            message={`Project: ${projectInfo.projectName}`}
-            description={
-              projectInfo.isValid 
-                ? `Found ${projectInfo.entityCount} entities in ${projectInfo.path}`
-                : 'Project structure may not be valid for nocsharp'
-            }
-            showIcon
-          />
         )}
 
         {errors.length > 0 && (
@@ -176,7 +292,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
           />
         )}
 
-        {/* Project Statistics */}
+        {/* 📊 Project Information */}
         {projectInfo && projectInfo.isValid && (
           <Card title="📊 Project Information" size="small" style={{ marginBottom: '16px' }}>
             <Row gutter={[16, 16]}>
@@ -190,22 +306,22 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
               <Col span={6}>
                 <Statistic
                   title="Existing Entities"
-                  value={scannedEntities.length}
+                  value={existingEntities.filter(entity => entity.name !== 'BaseEntity').length}
                   valueStyle={{ color: '#1890ff' }}
                 />
               </Col>
               <Col span={6}>
                 <Statistic
-                  title="New Entities"
-                  value={existingEntities.length - scannedEntities.length}
-                  valueStyle={{ color: '#722ed1' }}
+                  title="Entidades Modificadas"
+                  value={getModifiedEntitiesCount()}
+                  valueStyle={{ color: hasEntityChanges ? '#faad14' : '#52c41a' }}
                 />
               </Col>
               <Col span={6}>
                 <Statistic
-                  title="Total Entities"
-                  value={existingEntities.length}
-                  valueStyle={{ color: '#52c41a' }}
+                  title="Status"
+                  value={hasEntityChanges ? 'Pendente' : 'Sincronizado'}
+                  valueStyle={{ color: hasEntityChanges ? '#faad14' : '#52c41a' }}
                 />
               </Col>
             </Row>
@@ -226,43 +342,90 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
           </Card>
         )}
 
-        {/* Import Options */}
+        {/* Import from DBDiagram */}
         {projectInfo && projectInfo.isValid && (
-          <Card title="📥 Import Additional Entities" size="small" style={{ marginBottom: '16px' }}>
+          <DBDiagramUpload 
+            onEntitiesLoaded={handleDBDiagramEntitiesLoaded}
+            title="Import from DBDiagram"
+            description="Upload a .dbml or .txt file to import entities"
+            onEntityComparison={onEntityComparison}
+            existingEntities={existingEntities}
+          />
+        )}
+
+        {/* Configuração de Entidades */}
+        {projectInfo && projectInfo.isValid && scannedEntities.length > 0 && (
+          <Card 
+            title={
+              <Space>
+                <SettingOutlined />
+                Configuração de Entidades
+              </Space>
+            } 
+            size="small" 
+            style={{ marginTop: '16px' }}
+          >
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Text type="secondary">
-                Use the Entity Management section or import from DBDiagram to add new entities to this project.
-              </Text>
-              
-              <DBDiagramUpload 
-                onEntitiesLoaded={handleDBDiagramEntitiesLoaded}
-                title="Import from DBDiagram"
-                description="Upload a .dbml or .txt file to import entities"
-                onEntityComparison={onEntityComparison}
-                existingEntities={existingEntities}
-              />
+                {/* Componente de formulário de entidades */}
+                {addEntity && (
+                  <EntityForm
+                    entities={existingEntities.filter(entity => entity.name !== 'BaseEntity')}
+                    addEntity={addEntity}
+                    updateEntityName={updateEntityName}
+                    updateEntityBaseSkip={updateEntityBaseSkip}
+                    addProperty={addProperty}
+                    updateProperty={updateProperty}
+                    removeProperty={removeProperty}
+                    removeEntity={removeEntity}
+                    collapsible
+                  />
+                )}
             </Space>
           </Card>
         )}
 
-        {/* Update Project Button */}
-        {projectInfo && projectInfo.isValid && existingEntities.length > scannedEntities.length && (
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <Alert
-              message={`${existingEntities.length - scannedEntities.length} new entities ready to be added to the project`}
-              type="info"
-              style={{ marginBottom: '12px' }}
-            />
-            <Button 
-              type="primary" 
-              size="large"
-              onClick={handleUpdateProject}
-              style={{ minWidth: '200px' }}
-              icon={<DatabaseOutlined />}
-            >
-              🔄 Update Project
-            </Button>
-          </div>
+        {/* Unified Update Project Section */}
+        {projectInfo && projectInfo.isValid && (
+          <>
+            {/* Exibir informações sobre novas entidades se houver */}
+            {existingEntities.length > scannedEntities.length && (
+              <Alert
+                message={`${existingEntities.length - scannedEntities.length} new entities ready to be added to the project`}
+                type="info"
+                style={{ marginTop: '16px' }}
+              />
+            )}
+            
+            {/* Exibir informações sobre entidades modificadas se houver */}
+            {onUpdateModifiedEntities && hasEntityChanges && getModifiedEntitiesCount() > 0 && (
+              <Alert
+                message={`⚠️ ${getModifiedEntitiesCount()} ${getModifiedEntitiesCount() === 1 ? 'entidade modificada' : 'entidades modificadas'}`}
+                description="As entidades modificadas serão incluídas na atualização do projeto"
+                type="warning"
+                style={{ marginTop: '16px' }}
+              />
+            )}
+
+            {/* Botão para atualizar projeto */}
+            {(existingEntities.length > scannedEntities.length) && (
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <Button 
+                  type="primary" 
+                  size="large"
+                  onClick={handleUpdateProject}
+                  loading={isExecutingCommands}
+                  disabled={isExecutingCommands}
+                  style={{ minWidth: '250px' }}
+                  icon={<DatabaseOutlined />}
+                >
+                  {isExecutingCommands 
+                    ? '🔄 Atualizando...' 
+                    : `🔄 Update Project (${existingEntities.length - scannedEntities.length} novas)`
+                  }
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </Space>
     </Card>

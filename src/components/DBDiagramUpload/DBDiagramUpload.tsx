@@ -3,7 +3,7 @@ import { Upload, Button, Alert, Typography, Card, Space } from 'antd';
 import { FileTextOutlined, UploadOutlined } from '@ant-design/icons';
 import { RcFile } from 'antd/lib/upload';
 import { Entity } from '../../models/Entity';
-import { Property } from '../../models/Property';
+import { DBDiagramParser } from '../../services/DBDiagramParser';
 
 const { Text } = Typography;
 
@@ -26,88 +26,6 @@ const DBDiagramUpload: React.FC<DBDiagramUploadProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const parseDBDiagram = (content: string): Entity[] => {
-    const entities: Entity[] = [];
-    const lines = content.split('\n');
-    let currentEntity: Entity | null = null;
-    let insideTable = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      // Detectar início de tabela
-      if (line.startsWith('Table ') || line.match(/^table\s+/i)) {
-        const tableName = line.replace(/Table\s+/i, '').replace(/\s*{.*/, '').trim();
-        currentEntity = {
-          name: tableName,
-          properties: [],
-          baseSkip: false
-        };
-        insideTable = true;
-        continue;
-      }
-
-      // Detectar fim de tabela
-      if (line === '}' && insideTable && currentEntity) {
-        entities.push(currentEntity);
-        currentEntity = null;
-        insideTable = false;
-        continue;
-      }
-
-      // Processar propriedades dentro da tabela
-      if (insideTable && currentEntity && line && !line.startsWith('//') && !line.startsWith('/*')) {
-        // Formato típico: id int [pk, increment]
-        // ou: name varchar(255) [not null]
-        const propertyMatch = line.match(/^(\w+)\s+(\w+(?:\([^)]+\))?)\s*(?:\[([^\]]+)\])?/);
-        
-        if (propertyMatch) {
-          const [, name, type, attributes] = propertyMatch;
-          
-          // Mapear tipos do DBDiagram para tipos C#
-          const typeMapping: { [key: string]: string } = {
-            'int': 'int',
-            'integer': 'int',
-            'bigint': 'long',
-            'varchar': 'string',
-            'text': 'string',
-            'char': 'string',
-            'boolean': 'bool',
-            'bool': 'bool',
-            'decimal': 'decimal',
-            'float': 'float',
-            'double': 'double',
-            'datetime': 'DateTime',
-            'timestamp': 'DateTime',
-            'date': 'DateTime',
-            'time': 'TimeSpan',
-            'uuid': 'Guid',
-            'json': 'string',
-            'jsonb': 'string'
-          };
-
-          // Extrair tipo base (sem parênteses)
-          const baseType = type.replace(/\([^)]+\)/, '').toLowerCase();
-          const csharpType = typeMapping[baseType] || 'string';
-
-          // Verificar se é nullable ou primary key
-          const isNullable = !attributes?.includes('not null') && !attributes?.includes('pk');
-          const isPrimaryKey = attributes?.includes('pk') || attributes?.includes('primary key');
-
-          const property: Property = {
-            name: name,
-            type: isPrimaryKey ? 'int' : csharpType,
-            collectionType: '' // Propriedades normais não são coleções
-          };
-
-          currentEntity.properties.push(property);
-        }
-      }
-    }
-
-    return entities;
-  };
-
   const handleFileUpload = async (file: RcFile) => {
     setLoading(true);
     setError(null);
@@ -128,12 +46,14 @@ const DBDiagramUpload: React.FC<DBDiagramUploadProps> = ({
         reader.readAsText(file);
       });
 
-      // Parse do conteúdo
-      const entities = parseDBDiagram(content);
-
-      if (entities.length === 0) {
-        throw new Error('Nenhuma entidade encontrada no arquivo. Verifique o formato DBDiagram.');
+      // Parse do conteúdo usando o novo serviço
+      const parseResult = DBDiagramParser.parseWithValidation(content);
+      
+      if (!parseResult.success || !parseResult.entities) {
+        throw new Error(parseResult.error || 'Erro ao processar o arquivo DBDiagram');
       }
+
+      const entities = parseResult.entities;
 
       // Verificar duplicatas automaticamente antes de carregar as entidades
       if (onEntityComparison && existingEntities.length > 0) {
@@ -180,6 +100,17 @@ const DBDiagramUpload: React.FC<DBDiagramUploadProps> = ({
             <FileTextOutlined /> Selecionar Arquivo DBDiagram
           </Button>
         </Upload>
+
+        {success && (
+          <Alert
+            message="Sucesso!"
+            description={success}
+            type="success"
+            showIcon
+            closable
+            onClose={() => setSuccess(null)}
+          />
+        )}
 
         {error && (
           <Alert

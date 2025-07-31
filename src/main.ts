@@ -27,7 +27,7 @@ const createWindow = async () => {
   }
 
   // Abre as DevTools
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 };
 
 

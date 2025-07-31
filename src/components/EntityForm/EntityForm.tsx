@@ -29,7 +29,7 @@ const EntityForm: React.FC<EntityFormProps> = ({
   removeProperty,
   removeEntity,
   hideAddButton = false,
-  collapsible = false,
+  collapsible = true,
 }) => {
   const [newEntityName, setNewEntityName] = useState('');
   const [newProperty, setNewProperty] = useState<{ [key: number]: Property }>({});
@@ -152,40 +152,6 @@ const EntityForm: React.FC<EntityFormProps> = ({
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
-      {/* Statistics Dashboard */}
-      <Row gutter={16}>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Total Entities"
-              value={entities.length}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Total Properties"
-              value={entities.reduce((sum, entity) => sum + entity.properties.length, 0)}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="Avg Props/Entity"
-              value={entities.length > 0 ? 
-                (entities.reduce((sum, entity) => sum + entity.properties.length, 0) / entities.length).toFixed(1) : 
-                '0'
-              }
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
       {/* Add New Entity */}
       {!hideAddButton && (
         <Card title="Add New Entity" size="small">
@@ -204,7 +170,6 @@ const EntityForm: React.FC<EntityFormProps> = ({
       )}
 
       {/* Entity List */}
-      {collapsible ? (
         <Collapse
           size="small"
           items={entities.map((entity, entityIndex) => ({
@@ -341,133 +306,7 @@ const EntityForm: React.FC<EntityFormProps> = ({
             )
           }))}
         />
-      ) : (
-        entities.map((entity, entityIndex) => (
-          <Card
-            key={entityIndex}
-            title={
-              editingEntity === entityIndex ? (
-                <Input
-                  value={entity.name}
-                  onChange={(e) => updateEntityName(entityIndex, e.target.value)}
-                  onPressEnter={() => setEditingEntity(null)}
-                  onBlur={() => setEditingEntity(null)}
-                  autoFocus
-                />
-              ) : (
-                <span onClick={() => setEditingEntity(entityIndex)} style={{ cursor: 'pointer' }}>
-                  {entity.name} ({entity.properties.length} properties)
-                </span>
-              )
-            }
-            size="small"
-            extra={
-              <Popconfirm
-                title="Remove this entity?"
-                onConfirm={() => removeEntity(entityIndex)}
-                okText="Yes"
-                cancelText="No"
-              >
-                <Button icon={<DeleteOutlined />} size="small" danger />
-              </Popconfirm>
-            }
-          >
-            {/* Base Skip Toggle */}
-            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Switch
-                checked={entity.baseSkip || false}
-                onChange={(checked) => updateEntityBaseSkip?.(entityIndex, checked)}
-                size="small"
-              />
-              <span style={{ fontSize: '12px', color: '#666' }}>
-                Use --baseSkip parameter (skip base entity methods)
-              </span>
-            </div>
-
-            {/* Add Property Form */}
-            <Form layout="inline" style={{ marginBottom: 16 }}>
-              <Form.Item>
-                <Input
-                  placeholder="Property name"
-                  value={newProperty[entityIndex]?.name || ''}
-                  onChange={(e) => setNewProperty(prev => ({
-                    ...prev,
-                    [entityIndex]: { ...prev[entityIndex], name: e.target.value, type: prev[entityIndex]?.type || 'string', collectionType: prev[entityIndex]?.collectionType || '' }
-                  }))}
-                />
-              </Form.Item>
-              <Form.Item>
-                <Select
-                  placeholder="Type"
-                  value={newProperty[entityIndex]?.type || 'string'}
-                  onChange={(value) => setNewProperty(prev => ({
-                    ...prev,
-                    [entityIndex]: { ...prev[entityIndex], name: prev[entityIndex]?.name || '', type: value, collectionType: prev[entityIndex]?.collectionType || '' }
-                  }))}
-                  style={{ width: 140 }}
-                  showSearch
-                  filterOption={(input, option) =>
-                    String(option?.children || '').toLowerCase().includes(input.toLowerCase())
-                  }
-                >
-                  <Option value="string">String</Option>
-                  <Option value="int">Int</Option>
-                  <Option value="bool">Bool</Option>
-                  <Option value="DateTime">DateTime</Option>
-                  <Option value="decimal">Decimal</Option>
-                  <Option value="double">Double</Option>
-                  <Option value="float">Float</Option>
-                  <Option value="long">Long</Option>
-                  <Option value="Guid">Guid</Option>
-                  {entities
-                    .filter((entity, index) => index !== entityIndex && entity.name.trim())
-                    .map(entity => (
-                      <Option key={entity.name} value={entity.name}>
-                        {entity.name} (Entity)
-                      </Option>
-                    ))}
-                </Select>
-              </Form.Item>
-              <Form.Item>
-                <Select
-                  placeholder="Collection"
-                  value={newProperty[entityIndex]?.collectionType || 'none'}
-                  onChange={(value) => setNewProperty(prev => ({
-                    ...prev,
-                    [entityIndex]: { ...prev[entityIndex], name: prev[entityIndex]?.name || '', type: prev[entityIndex]?.type || 'string', collectionType: value === 'none' ? '' : value }
-                  }))}
-                  style={{ width: 120 }}
-                >
-                  <Option value="none">None</Option>
-                  <Option value="List">List</Option>
-                  <Option value="ICollection">ICollection</Option>
-                  <Option value="IEnumerable">IEnumerable</Option>
-                </Select>
-              </Form.Item>
-              <Form.Item>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />} 
-                  onClick={() => handleAddProperty(entityIndex)}
-                  size="small"
-                >
-                  Add Property
-                </Button>
-              </Form.Item>
-            </Form>
-
-            {/* Properties Table */}
-            <Table
-              dataSource={entity.properties}
-              columns={getPropertyColumns(entityIndex)}
-              pagination={false}
-              size="small"
-              rowKey={(record, index) => `${entityIndex}-${index}`}
-              locale={{ emptyText: 'No properties yet' }}
-            />
-          </Card>
-        ))
-      )}
+      
     </Space>
   );
 };

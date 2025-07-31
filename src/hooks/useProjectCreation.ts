@@ -32,9 +32,22 @@ export const useProjectCreation = () => {
   };
 
   const checkForDuplicateEntities = (newEntities: Entity[], existingEntities: Entity[]): Entity[] => {
-    return newEntities.filter(newEntity =>
-      existingEntities.some(existingEntity => existingEntity.name === newEntity.name)
+    if (!newEntities || !existingEntities) {
+      return [];
+    }
+    
+    const duplicates = newEntities.filter(newEntity =>
+      existingEntities.some(existingEntity => 
+        existingEntity.name && newEntity.name &&
+        existingEntity.name.toLowerCase().trim() === newEntity.name.toLowerCase().trim()
+      )
     );
+    
+    if (duplicates.length > 0) {
+      console.log('Duplicates found:', duplicates.map(e => e.name));
+    }
+    
+    return duplicates;
   };
 
   const handleEntityComparison = (newEntities: Entity[], existingEntities: Entity[]) => {
