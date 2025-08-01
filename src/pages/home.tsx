@@ -18,7 +18,6 @@ import AppLayout from '../components/Layout';
 import HomePage from './HomePage';
 import ImportPage from './ImportPage';
 import ScannerPage from './ScannerPage';
-import TemplatesPage from './TemplatesPage';
 import DotNetDashboard from './DotNetDashboard/DotNetDashboard';
 import ModalsManager from '../components/ModalsManager';
 import ProjectModal from '../components/ProjectModal';
@@ -82,10 +81,6 @@ const Home: React.FC = () => {
   }, [entities, originalEntities]);
 
   // Handlers
-  const handleApplyTemplate = (templateEntities: any[]) => {
-    dispatch({ type: 'SET_ENTITIES', payload: templateEntities });
-  };
-
   const handleShowScannerModal = (modifiedEntities: Entity[], newEntities: Entity[]) => {
     // Gerar comandos para entidades novas
     const newEntityCommands = CommandFactory.generateCommands(newEntities, {
@@ -397,11 +392,6 @@ const Home: React.FC = () => {
             onUpdateModifiedEntities={handleUpdateModifiedEntities}
             refreshTrigger={scannerRefreshTrigger}
           />
-        );
-
-      case 'templates':
-        return (
-          <TemplatesPage onApplyTemplate={handleApplyTemplate} />
         );
 
       default:

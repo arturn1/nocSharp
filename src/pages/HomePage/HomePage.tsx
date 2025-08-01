@@ -82,15 +82,6 @@ const HomePage: React.FC<HomePageProps> = ({
       tag: 'Análise'
     },
     {
-      key: 'templates',
-      title: 'Templates',
-      description: 'Use templates predefinidos para acelerar desenvolvimento',
-      icon: <FileTextOutlined />,
-      color: colors.accent,
-      gradient: `linear-gradient(135deg, ${colors.accent} 0%, #4169E1 100%)`,
-      tag: 'Produtividade'
-    },
-    {
       key: 'dashboard',
       title: 'Dashboard .NET',
       description: 'Monitore métricas do projeto e arquitetura em tempo real',

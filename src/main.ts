@@ -12,11 +12,23 @@ if (require('electron-squirrel-startup')) {
 const createWindow = async () => {
   // Cria a janela do navegador
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1400,
+    height: 900,
+    minWidth: 1000,
+    minHeight: 700,
+    show: false, // Evita flash durante carregamento
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true
     },
+    titleBarStyle: 'default',
+    autoHideMenuBar: false,
+    resizable: true,
+    maximizable: true,
+    minimizable: true,
+    fullscreenable: true
   });
 
   // Carrega o index.html da aplicação
@@ -26,8 +38,60 @@ const createWindow = async () => {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
+  // Mostra a janela quando estiver pronta para evitar flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    
+    // Centraliza a janela na tela
+    mainWindow.center();
+    
+    // Opcional: maximizar em telas grandes
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    
+    // Se a tela for grande o suficiente, maximizar
+    if (screenWidth >= 1920 && screenHeight >= 1080) {
+      mainWindow.maximize();
+    }
+  });
+
+  // Configura zoom responsivo baseado no DPI da tela
+  mainWindow.webContents.on('did-finish-load', () => {
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const scaleFactor = primaryDisplay.scaleFactor;
+    
+    // Ajusta o zoom baseado no scale factor para melhor legibilidade
+    if (scaleFactor > 1.5) {
+      mainWindow.webContents.setZoomLevel(-0.5); // Reduz um pouco em telas de alta densidade
+    } else if (scaleFactor < 1) {
+      mainWindow.webContents.setZoomLevel(0.5); // Aumenta um pouco em telas de baixa densidade
+    }
+  });
+
   // Abre as DevTools
   // mainWindow.webContents.openDevTools();
+
+  // Responsividade adicional - escuta mudanças de tamanho
+  mainWindow.on('resize', () => {
+    const [width, height] = mainWindow.getSize();
+    
+    // Ajusta comportamentos baseado no tamanho da janela
+    if (width < 1200) {
+      // Modo compacto para janelas menores
+      mainWindow.webContents.executeJavaScript(`
+        document.body.classList.add('compact-mode');
+      `);
+    } else {
+      // Modo normal para janelas maiores
+      mainWindow.webContents.executeJavaScript(`
+        document.body.classList.remove('compact-mode');
+      `);
+    }
+  });
+
+  return mainWindow;
 };
 
 

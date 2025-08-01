@@ -123,11 +123,29 @@ const EntityForm: React.FC<EntityFormProps> = ({
         dataIndex: 'name',
         key: 'name',
         render: (text: string, record: Property, index: number) => (
-          <Input
-            value={text}
-            onChange={(e) => updateProperty(entityIndex, index, 'name', e.target.value)}
-            autoFocus
-          />
+          <Space>
+            <Input
+              value={text}
+              onChange={(e) => {
+                updateProperty(entityIndex, index, 'name', e.target.value);
+                // Remover flag isNew quando a propriedade for editada
+                if (record.isNew) {
+                  updateProperty(entityIndex, index, 'isNew', false as any);
+                }
+              }}
+              autoFocus
+            />
+            {record.isNew && (
+              <Badge 
+                count="NEW" 
+                style={{ 
+                  backgroundColor: '#52c41a',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }} 
+              />
+            )}
+          </Space>
         ),
       },
       {
@@ -137,7 +155,13 @@ const EntityForm: React.FC<EntityFormProps> = ({
         render: (text: string, record: Property, index: number) => (
           <Select
             value={text}
-            onChange={(value) => updateProperty(entityIndex, index, 'type', value)}
+            onChange={(value) => {
+              updateProperty(entityIndex, index, 'type', value);
+              // Remover flag isNew quando a propriedade for editada
+              if (record.isNew) {
+                updateProperty(entityIndex, index, 'isNew', false as any);
+              }
+            }}
             style={{ width: '100%' }}
             showSearch
             filterOption={(input, option) =>
@@ -159,7 +183,13 @@ const EntityForm: React.FC<EntityFormProps> = ({
         render: (text: string, record: Property, index: number) => (
           <Select
             value={text || 'none'}
-            onChange={(value) => updateProperty(entityIndex, index, 'collectionType', value === 'none' ? '' : value)}
+            onChange={(value) => {
+              updateProperty(entityIndex, index, 'collectionType', value === 'none' ? '' : value);
+              // Remover flag isNew quando a propriedade for editada
+              if (record.isNew) {
+                updateProperty(entityIndex, index, 'isNew', false as any);
+              }
+            }}
             style={{ width: '100%' }}
           >
             <Option value="none">None</Option>

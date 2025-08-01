@@ -4,6 +4,7 @@ import { DatabaseOutlined, UploadOutlined, FolderOpenOutlined, CodeOutlined } fr
 
 const { Text, Title } = Typography;
 import { Entity } from '../../models/Entity';
+import { Property } from '../../models/Property';
 import { useAppContext } from '../../contexts/AppContext';
 import { useFileManagement } from '../../hooks/useFileManagement';
 import { FileOperationService } from '../../services/FileOperationService';
@@ -75,11 +76,11 @@ const ImportPage: React.FC<ImportPageProps> = ({
   const handleUpdateProperty = (
     entityIndex: number,
     propertyIndex: number,
-    field: keyof import('../../models/Property').Property,
-    value: string
+    field: keyof Property,
+    value: any
   ) => {
     const updated = [...importedEntities];
-    updated[entityIndex].properties[propertyIndex][field] = value;
+    (updated[entityIndex].properties[propertyIndex] as any)[field] = value;
     setImportedEntities(updated);
   };
 

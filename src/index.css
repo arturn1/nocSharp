@@ -16,6 +16,42 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Responsividade para aplicação Electron */
+body.compact-mode {
+  font-size: 13px;
+}
+
+body.compact-mode .ant-typography h1 {
+  font-size: 20px !important;
+}
+
+body.compact-mode .ant-typography h2 {
+  font-size: 18px !important;
+}
+
+body.compact-mode .ant-typography h3 {
+  font-size: 16px !important;
+}
+
+body.compact-mode .ant-card {
+  margin-bottom: 12px !important;
+}
+
+body.compact-mode .ant-card-body {
+  padding: 16px !important;
+}
+
+body.compact-mode .ant-space {
+  gap: 8px !important;
+}
+
+body.compact-mode .ant-btn {
+  height: 28px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
 }
 
 /* Cores frias e sobrias */
@@ -262,6 +298,82 @@ body {
   .ant-menu-horizontal {
     justify-content: flex-start !important;
   }
+}
+
+/* Electron-specific responsive adjustments */
+@media (max-width: 1200px) {
+  .ant-layout-content {
+    padding: 16px !important;
+  }
+  
+  .ant-card-grid {
+    width: 50% !important;
+  }
+  
+  .ant-statistic-title {
+    font-size: 12px !important;
+  }
+  
+  .ant-statistic-content {
+    font-size: 20px !important;
+  }
+}
+
+@media (max-width: 1000px) {
+  .ant-col {
+    margin-bottom: 12px !important;
+  }
+  
+  .ant-card-body {
+    padding: 12px !important;
+  }
+  
+  .ant-space-item {
+    margin-right: 8px !important;
+  }
+  
+  .ant-btn-group .ant-btn {
+    padding: 0 8px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  body {
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+  
+  .ant-btn {
+    border-width: 0.5px !important;
+  }
+  
+  .ant-card {
+    border-width: 0.5px !important;
+  }
+}
+
+/* Window size specific layouts */
+.electron-window-small {
+  font-size: 12px;
+}
+
+.electron-window-small .ant-layout-sider {
+  width: 180px !important;
+  min-width: 180px !important;
+}
+
+.electron-window-small .ant-menu-item {
+  font-size: 12px !important;
+  padding: 0 12px !important;
+}
+
+.electron-window-large .ant-layout-content {
+  padding: 24px !important;
+}
+
+.electron-window-large .ant-card {
+  margin-bottom: 24px !important;
 }
 
 /* Utilities */

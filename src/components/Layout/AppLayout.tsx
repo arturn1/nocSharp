@@ -86,11 +86,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       icon: <CodeOutlined />,
       label: 'Editor',
     },
-    {
-      key: 'templates',
-      icon: <ToolOutlined />,
-      label: 'Templates',
-    },
   ];
 
   return (
@@ -98,33 +93,33 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       <Header style={{ 
         background: `linear-gradient(135deg, ${colors.surface} 0%, ${isDarkMode ? '#334155' : '#F1F5F9'} 100%)`,
         borderBottom: `1px solid ${colors.border}`,
-        padding: '0 32px',
+        padding: '0 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '72px',
+        height: '64px',
         boxShadow: isDarkMode 
           ? '0 4px 20px rgba(0, 0, 0, 0.3)'
           : '0 4px 20px rgba(0, 0, 0, 0.1)'
       }}>
         {/* Brand Section */}
-        <Space align="center" style={{ minWidth: '250px' }}>
+        <Space align="center" style={{ minWidth: '200px', flex: '0 0 auto' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
             background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: `0 4px 16px ${colors.primary}30`
+            boxShadow: `0 2px 12px ${colors.primary}30`
           }}>
-            <CodeOutlined style={{ fontSize: '20px', color: 'white' }} />
+            <CodeOutlined style={{ fontSize: '18px', color: 'white' }} />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <Title level={4} style={{ 
               margin: 0, 
-              fontSize: '20px', 
+              fontSize: '18px', 
               color: colors.primary,
               fontWeight: '700'
             }}>
@@ -132,10 +127,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             </Title>
             {projectName && (
               <Text style={{ 
-                fontSize: '12px', 
+                fontSize: '11px', 
                 color: colors.textSecondary,
                 display: 'block',
-                lineHeight: '1.2'
+                lineHeight: '1.2',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '150px'
               }}>
                 {projectName}
               </Text>
@@ -160,13 +159,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({
             backgroundColor: 'transparent',
             flex: 1,
             justifyContent: 'center',
-            maxWidth: '600px',
-            fontSize: '14px'
+            maxWidth: '500px',
+            fontSize: '13px'
           }}
         />
 
         {/* Theme Toggle and Project Status */}
-        <Space size="large" align="center">
+        <Space size={12} align="center" style={{ flex: '0 0 auto' }}>
           {projectName && (
             <Badge 
               status={hasModifications ? 'processing' : 'success'} 
@@ -175,8 +174,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                   color: hasModifications 
                     ? (isDarkMode ? '#faad14' : '#d48806')  // Amarelo para modificações
                     : colors.primary,  // Azul para sincronizado
-                  fontSize: '12px',
-                  fontWeight: '500'
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  whiteSpace: 'nowrap'
                 }}>
                   {hasModifications 
                     ? `${totalModifications} Modificações`
@@ -196,9 +196,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '8px',
-                width: '40px',
-                height: '40px',
+                borderRadius: '6px',
+                width: '36px',
+                height: '36px',
+                fontSize: '16px',
                 transition: 'all 0.3s ease'
               }}
             />
@@ -210,7 +211,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <Content style={{ 
           padding: '0',
           overflow: 'auto', 
-          maxHeight: 'calc(100vh - 72px)',
+          maxHeight: 'calc(100vh - 64px)',
           backgroundColor: colors.background
         }}>
           {children}

@@ -535,17 +535,17 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
             >
               {/* Header do Projeto */}
               <Row align="middle" justify="space-between" style={{ marginBottom: '20px' }}>
-                <Col>
-                  <Space align="center" size="large">
+                <Col xs={24} sm={16} md={18}>
+                  <Space align="center" size={16} wrap>
                     <div style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '16px',
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
                       background: 'linear-gradient(135deg, #4A90E2 0%, #5D6D7E 100%)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 8px 24px rgba(74, 144, 226, 0.4)',
+                      boxShadow: '0 6px 20px rgba(74, 144, 226, 0.4)',
                       position: 'relative',
                       overflow: 'hidden'
                     }}>
@@ -558,14 +558,15 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                         background: 'linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent)',
                         animation: 'shimmer 2s infinite linear'
                       }} />
-                      <DatabaseOutlined style={{ fontSize: '28px', color: 'white', zIndex: 1 }} />
+                      <DatabaseOutlined style={{ fontSize: '24px', color: 'white', zIndex: 1 }} />
                     </div>
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <Title level={3} style={{ 
                         margin: 0, 
                         color: isDarkMode ? '#ffffff' : '#1f1f1f',
-                        fontSize: '22px',
-                        fontWeight: 700
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        wordBreak: 'break-word'
                       }}>
                         {projectInfo.projectName}
                       </Title>
@@ -574,7 +575,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                           status={hasEntityChanges ? 'processing' : 'success'} 
                         />
                         <Text style={{ 
-                          fontSize: '14px',
+                          fontSize: '13px',
                           color: isDarkMode ? '#94a3b8' : '#64748b',
                           fontWeight: 500
                         }}>
@@ -584,24 +585,26 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                     </div>
                   </Space>
                 </Col>
-                <Col>
-                  <Space size="large">
+                <Col xs={24} sm={8} md={6} style={{ textAlign: 'right', marginTop: 8 }}>
+                  <Space size="middle" wrap>
                     {hasEntityChanges && (
                       <Button 
                         type="primary"
-                        size="large"
+                        size="small"
                         icon={<ArrowUpOutlined />}
                         style={{
                           background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
                           border: 'none',
-                          borderRadius: '8px',
+                          borderRadius: '6px',
                           fontWeight: 600,
-                          boxShadow: '0 4px 12px rgba(82, 196, 26, 0.3)'
+                          fontSize: '11px',
+                          height: '28px',
+                          boxShadow: '0 2px 8px rgba(82, 196, 26, 0.3)'
                         }}
                         onClick={handleUpdateProject}
                         loading={isExecutingCommands}
                       >
-                        Atualizar Projeto
+                        Atualizar
                       </Button>
                     )}
                   </Space>
@@ -609,8 +612,8 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
               </Row>
 
               {/* Métricas em Cards Modernos */}
-              <Row gutter={[20, 16]} align="middle">
-                <Col span={6}>
+              <Row gutter={[16, 12]} align="middle">
+                <Col xs={24} sm={12} md={6}>
                   <Card size="small" style={{ 
                     background: isDarkMode ? '#262626' : '#f8fafc',
                     border: isDarkMode ? '1px solid #404040' : '1px solid #e2e8f0',
@@ -618,18 +621,18 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                     textAlign: 'center'
                   }}>
                     <Statistic
-                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '12px' }}>Total</Text>}
+                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '11px' }}>Total</Text>}
                       value={existingEntities.filter(entity => entity.name !== 'BaseEntity').length}
                       valueStyle={{ 
                         color: '#4A90E2', 
-                        fontSize: '28px',
+                        fontSize: '24px',
                         fontWeight: 'bold'
                       }}
-                      prefix={<DatabaseOutlined style={{ color: '#4A90E2' }} />}
+                      prefix={<DatabaseOutlined style={{ color: '#4A90E2', fontSize: '16px' }} />}
                     />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={24} sm={12} md={6}>
                   <Card size="small" style={{ 
                     background: isDarkMode ? '#1f2937' : '#f0fdf4',
                     border: isDarkMode ? '1px solid #16a34a' : '1px solid #22c55e',
@@ -637,18 +640,18 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                     textAlign: 'center'
                   }}>
                     <Statistic
-                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '12px' }}>Novas</Text>}
+                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '11px' }}>Novas</Text>}
                       value={getNewEntities().length}
                       valueStyle={{ 
                         color: '#22c55e', 
-                        fontSize: '28px',
+                        fontSize: '24px',
                         fontWeight: 'bold'
                       }}
-                      prefix={<PlusOutlined style={{ color: '#22c55e' }} />}
+                      prefix={<PlusOutlined style={{ color: '#22c55e', fontSize: '16px' }} />}
                     />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={24} sm={12} md={6}>
                   <Card size="small" style={{ 
                     background: isDarkMode ? '#2d1b20' : '#fefdf0',
                     border: isDarkMode ? '1px solid #f59e0b' : '1px solid #f59e0b',
@@ -656,18 +659,18 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                     textAlign: 'center'
                   }}>
                     <Statistic
-                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '12px' }}>Modificadas</Text>}
+                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '11px' }}>Modificadas</Text>}
                       value={getModifiedEntities().length}
                       valueStyle={{ 
                         color: '#f59e0b', 
-                        fontSize: '28px',
+                        fontSize: '24px',
                         fontWeight: 'bold'
                       }}
-                      prefix={<EditOutlined style={{ color: '#f59e0b' }} />}
+                      prefix={<EditOutlined style={{ color: '#f59e0b', fontSize: '16px' }} />}
                     />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={24} sm={12} md={6}>
                   <Card size="small" style={{ 
                     background: isDarkMode ? '#261d30' : '#faf7ff',
                     border: isDarkMode ? '1px solid #8b5cf6' : '1px solid #8b5cf6',
@@ -675,14 +678,14 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                     textAlign: 'center'
                   }}>
                     <Statistic
-                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '12px' }}>No Projeto</Text>}
+                      title={<Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: '11px' }}>No Projeto</Text>}
                       value={scannedEntities.length}
                       valueStyle={{ 
                         color: '#8b5cf6', 
-                        fontSize: '28px',
+                        fontSize: '24px',
                         fontWeight: 'bold'
                       }}
-                      prefix={<CheckCircleOutlined style={{ color: '#8b5cf6' }} />}
+                      prefix={<CheckCircleOutlined style={{ color: '#8b5cf6', fontSize: '16px' }} />}
                     />
                   </Card>
                 </Col>
@@ -778,24 +781,25 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                 Entidades Novas ({getNewEntities().length})
                               </Text>
                             </Space>
-                            <Row gutter={[8, 8]}>
+                            <Row gutter={[12, 12]}>
                               {getNewEntities().map((entity, index) => (
-                                <Col key={index}>
+                                <Col key={index} xs={24} sm={12} md={8} lg={6}>
                                   <Card 
                                     size="small" 
                                     style={{ 
                                       background: isDarkMode ? '#1a1a1a' : '#ffffff',
                                       border: isDarkMode ? '1px solid #333' : '1px solid #e8e8e8',
                                       borderRadius: '6px',
-                                      minWidth: '160px'
+                                      height: '100%'
                                     }}
                                   >
                                     <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                                      <Space align="center">
-                                        <DatabaseOutlined style={{ color: '#22c55e' }} />
+                                      <Space align="center" wrap>
+                                        <DatabaseOutlined style={{ color: '#22c55e', fontSize: '14px' }} />
                                         <Text strong style={{ 
                                           color: isDarkMode ? '#ffffff' : '#1f1f1f',
-                                          fontSize: '13px'
+                                          fontSize: '12px',
+                                          wordBreak: 'break-word'
                                         }}>
                                           {entity.name}
                                         </Text>
@@ -803,12 +807,12 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                           count="NEW" 
                                           style={{ 
                                             backgroundColor: '#22c55e',
-                                            fontSize: '10px'
+                                            fontSize: '9px'
                                           }} 
                                         />
                                       </Space>
                                       <Text style={{ 
-                                        fontSize: '11px',
+                                        fontSize: '10px',
                                         color: isDarkMode ? '#94a3b8' : '#64748b'
                                       }}>
                                         {entity.properties?.length || 0} propriedades
@@ -861,27 +865,34 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                     }}
                                   >
                                     <Space direction="vertical" style={{ width: '100%' }} size="small">
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                        <Space align="center">
-                                          <DatabaseOutlined style={{ color: '#f59e0b' }} />
-                                          <Text strong style={{ 
-                                            color: isDarkMode ? '#ffffff' : '#1f1f1f',
-                                            fontSize: '13px'
-                                          }}>
-                                            {entity.name}
-                                          </Text>
-                                        </Space>
-                                        <Text style={{ 
-                                          fontSize: '11px',
-                                          color: isDarkMode ? '#94a3b8' : '#64748b'
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      justifyContent: 'space-between', 
+                                      width: '100%',
+                                      flexWrap: 'wrap',
+                                      gap: '8px'
+                                    }}>
+                                      <Space align="center" wrap>
+                                        <DatabaseOutlined style={{ color: '#f59e0b', fontSize: '14px' }} />
+                                        <Text strong style={{ 
+                                          color: isDarkMode ? '#ffffff' : '#1f1f1f',
+                                          fontSize: '12px',
+                                          wordBreak: 'break-word'
                                         }}>
-                                          {changes.length} alteração{changes.length !== 1 ? 'ões' : ''}
+                                          {entity.name}
                                         </Text>
-                                      </div>
-                                      
-                                      {/* Lista de Mudanças */}
+                                      </Space>
+                                      <Text style={{ 
+                                        fontSize: '10px',
+                                        color: isDarkMode ? '#94a3b8' : '#64748b',
+                                        whiteSpace: 'nowrap'
+                                      }}>
+                                        {changes.length} alteração{changes.length !== 1 ? 'ões' : ''}
+                                      </Text>
+                                    </div>                      {/* Lista de Mudanças */}
                                       <div style={{ marginTop: '8px' }}>
-                                        <Space wrap size="small">
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                           {changes.map((change, changeIndex) => (
                                             <Tag 
                                               key={changeIndex}
@@ -889,18 +900,23 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                                 change.type === 'added' ? 'green' :
                                                 change.type === 'modified' ? 'orange' : 'red'
                                               }
-                                              style={{ margin: '1px' }}
+                                              style={{ 
+                                                margin: '1px',
+                                                fontSize: '10px',
+                                                lineHeight: '16px',
+                                                padding: '0 4px'
+                                              }}
                                             >
                                               <Space size="small">
-                                                {change.type === 'added' ? <PlusOutlined /> :
-                                                 change.type === 'modified' ? <SwapOutlined /> : <MinusOutlined />}
-                                                <Text code style={{ fontSize: '11px' }}>
+                                                {change.type === 'added' ? <PlusOutlined style={{ fontSize: '8px' }} /> :
+                                                 change.type === 'modified' ? <SwapOutlined style={{ fontSize: '8px' }} /> : <MinusOutlined style={{ fontSize: '8px' }} />}
+                                                <Text code style={{ fontSize: '10px' }}>
                                                   {change.property}
                                                 </Text>
                                               </Space>
                                             </Tag>
                                           ))}
-                                        </Space>
+                                        </div>
                                       </div>
                                     </Space>
                                   </Card>
@@ -996,13 +1012,13 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                     <div style={{ flex: 1 }}>
                       <Text strong style={{ 
                         color: isDarkMode ? '#ffffff' : '#1f1f1f',
-                        fontSize: '16px'
+                        fontSize: '14px'
                       }}>
                         Atualizar Projeto
                       </Text>
                       <div style={{ marginTop: '2px' }}>
                         <Text type="secondary" style={{ 
-                          fontSize: '12px',
+                          fontSize: '11px',
                           color: isDarkMode ? '#a0a0a0' : '#666666'
                         }}>
                           {getNewEntities().length + getModifiedEntities().length} alterações pendentes
@@ -1039,10 +1055,10 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                       </Text>
                       
                       <Row gutter={16}>
-                        <Col span={12}>
+                        <Col xs={24} sm={12}>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ 
-                              fontSize: '20px', 
+                              fontSize: '18px', 
                               fontWeight: 'bold',
                               color: '#52c41a',
                               marginBottom: '4px'
@@ -1050,17 +1066,17 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                               {getNewEntities().length}
                             </div>
                             <Text type="secondary" style={{ 
-                              fontSize: '12px',
+                              fontSize: '11px',
                               color: isDarkMode ? '#a0a0a0' : '#666666'
                             }}>
                               Novas Entidades
                             </Text>
                           </div>
                         </Col>
-                        <Col span={12}>
+                        <Col xs={24} sm={12}>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ 
-                              fontSize: '20px', 
+                              fontSize: '18px', 
                               fontWeight: 'bold',
                               color: '#fa8c16',
                               marginBottom: '4px'
@@ -1068,7 +1084,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                               {getModifiedEntities().length}
                             </div>
                             <Text type="secondary" style={{ 
-                              fontSize: '12px',
+                              fontSize: '11px',
                               color: isDarkMode ? '#a0a0a0' : '#666666'
                             }}>
                               Modificadas
@@ -1094,7 +1110,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                         Comandos a serem executados
                       </Text>
                       
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                      <Space direction="vertical" size="small" style={{ width: '100%', maxHeight: '200px', overflowY: 'auto' }}>
                         {getNewEntities().map((entity, index) => (
                           <div key={`new-${index}`} style={{
                             padding: '8px 12px',
@@ -1103,13 +1119,16 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                             border: isDarkMode ? '1px solid #434343' : '1px solid #e6f7ff',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between'
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '8px'
                           }}>
-                            <div>
-                              <Tag color="green">CRIAR</Tag>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                              <Tag color="green" style={{ margin: 0, fontSize: '10px' }}>CRIAR</Tag>
                               <Text style={{ 
                                 color: isDarkMode ? '#d9d9d9' : '#595959',
-                                fontSize: '13px'
+                                fontSize: '12px',
+                                wordBreak: 'break-word'
                               }}>
                                 Entidade {entity.name}
                               </Text>
@@ -1117,26 +1136,28 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                             <Popover
                               title={
                                 <Text style={{ 
-                                  color: isDarkMode ? '#ffffff' : '#1f1f1f'
+                                  color: isDarkMode ? '#ffffff' : '#1f1f1f',
+                                  fontSize: '12px'
                                 }}>
                                   Detalhes: {entity.name}
                                 </Text>
                               }
                               content={
                                 <div style={{
-                                  backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff'
+                                  backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+                                  maxWidth: '250px'
                                 }}>
                                   <Space direction="vertical" size="small">
                                     <Text style={{ 
                                       color: isDarkMode ? '#d9d9d9' : '#595959',
-                                      fontSize: '12px'
+                                      fontSize: '11px'
                                     }}>
                                       Propriedades: {entity.properties?.length || 0}
                                     </Text>
                                     {entity.properties?.slice(0, 3).map((prop, propIndex) => (
                                       <Text key={propIndex} style={{ 
                                         color: isDarkMode ? '#a0a0a0' : '#8c8c8c',
-                                        fontSize: '11px',
+                                        fontSize: '10px',
                                         display: 'block'
                                       }}>
                                         • {prop.name}: {prop.type}
@@ -1145,7 +1166,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                     {entity.properties && entity.properties.length > 3 && (
                                       <Text style={{ 
                                         color: isDarkMode ? '#8c8c8c' : '#bfbfbf',
-                                        fontSize: '11px'
+                                        fontSize: '10px'
                                       }}>
                                         ... e mais {entity.properties.length - 3}
                                       </Text>
@@ -1162,8 +1183,9 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                 type="text"
                                 style={{
                                   color: isDarkMode ? '#1890ff' : '#1890ff',
-                                  fontSize: '11px',
-                                  padding: '0 4px'
+                                  fontSize: '10px',
+                                  padding: '0 4px',
+                                  height: '20px'
                                 }}
                               >
                                 Detalhes
@@ -1180,13 +1202,16 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                             border: isDarkMode ? '1px solid #434343' : '1px solid #fff7e6',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between'
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '8px'
                           }}>
-                            <div>
-                              <Tag color="orange">MODIFICAR</Tag>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                              <Tag color="orange" style={{ margin: 0, fontSize: '10px' }}>MODIFICAR</Tag>
                               <Text style={{ 
                                 color: isDarkMode ? '#d9d9d9' : '#595959',
-                                fontSize: '13px'
+                                fontSize: '12px',
+                                wordBreak: 'break-word'
                               }}>
                                 Entidade {entity.name}
                               </Text>
@@ -1194,30 +1219,33 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                             <Popover
                               title={
                                 <Text style={{ 
-                                  color: isDarkMode ? '#ffffff' : '#1f1f1f'
+                                  color: isDarkMode ? '#ffffff' : '#1f1f1f',
+                                  fontSize: '12px'
                                 }}>
                                   Alterações: {entity.name}
                                 </Text>
                               }
                               content={
                                 <div style={{
-                                  backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff'
+                                  backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+                                  maxWidth: '250px'
                                 }}>
                                   <Space direction="vertical" size="small">
                                     {getEntityChangeDetails(entity).slice(0, 4).map((change, changeIndex) => (
-                                      <div key={changeIndex}>
+                                      <div key={changeIndex} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <Tag 
                                           color={
                                             change.type === 'added' ? 'green' :
                                             change.type === 'modified' ? 'orange' : 'red'
                                           }
+                                          style={{ margin: 0, fontSize: '9px', lineHeight: '14px' }}
                                         >
                                           {change.type === 'added' ? '+' :
                                            change.type === 'modified' ? '~' : '-'}
                                         </Tag>
                                         <Text style={{ 
                                           color: isDarkMode ? '#d9d9d9' : '#595959',
-                                          fontSize: '11px'
+                                          fontSize: '10px'
                                         }}>
                                           {change.property}: {change.detail}
                                         </Text>
@@ -1226,7 +1254,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                     {getEntityChangeDetails(entity).length > 4 && (
                                       <Text style={{ 
                                         color: isDarkMode ? '#8c8c8c' : '#bfbfbf',
-                                        fontSize: '11px'
+                                        fontSize: '10px'
                                       }}>
                                         ... e mais {getEntityChangeDetails(entity).length - 4} alterações
                                       </Text>
@@ -1243,8 +1271,9 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                                 type="text"
                                 style={{
                                   color: isDarkMode ? '#1890ff' : '#1890ff',
-                                  fontSize: '11px',
-                                  padding: '0 4px'
+                                  fontSize: '10px',
+                                  padding: '0 4px',
+                                  height: '20px'
                                 }}
                               >
                                 Detalhes
@@ -1295,34 +1324,34 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                     }}>
                       <Button 
                         type="primary"
-                        size="large"
+                        size="middle"
                         onClick={handleUpdateProject}
                         loading={isExecutingCommands}
                         disabled={isExecutingCommands}
                         style={{ 
-                          height: '48px',
-                          fontSize: '16px',
+                          height: '36px',
+                          fontSize: '12px',
                           fontWeight: '600',
-                          borderRadius: '8px',
-                          minWidth: '200px',
+                          borderRadius: '6px',
+                          minWidth: '160px',
                           background: isExecutingCommands 
                             ? (isDarkMode ? '#434343' : '#d9d9d9')
                             : 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
                           border: 'none',
                           boxShadow: isExecutingCommands 
                             ? 'none' 
-                            : '0 4px 12px rgba(82, 196, 26, 0.3)'
+                            : '0 2px 8px rgba(82, 196, 26, 0.3)'
                         }}
                       >
                         {isExecutingCommands ? (
-                          <Space>
+                          <Space size="small">
                             <SyncOutlined spin />
-                            Atualizando Projeto
+                            <span style={{ fontSize: '12px' }}>Atualizando</span>
                           </Space>
                         ) : (
-                          <Space>
+                          <Space size="small">
                             <CheckCircleOutlined />
-                            Executar Atualização
+                            <span style={{ fontSize: '12px' }}>Executar Atualização</span>
                           </Space>
                         )}
                       </Button>
