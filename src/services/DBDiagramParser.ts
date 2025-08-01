@@ -31,15 +31,35 @@ export class DBDiagramParser {
   public static parseDBDiagram(content: string): Entity[] {
     const entities: Entity[] = [];
     const lines = content.split('\n');
+    const enums = new Set<string>();
+    const foreignKeys = new Set<string>();
+
+    // 1. First pass: Parse Enums and standalone Refs
+    let insideEnum = false;
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.match(/^enum\s+\w+\s*{/i)) {
+        const enumName = trimmedLine.replace(/enum\s+/i, '').replace(/\s*{.*/, '').trim();
+        enums.add(enumName);
+        insideEnum = true;
+      } else if (insideEnum && trimmedLine === '}') {
+        insideEnum = false;
+      } else if (trimmedLine.match(/^Ref:/i)) {
+        const fkMatch = trimmedLine.match(/Ref:\s*\w+\.(\w+)\s*>/);
+        if (fkMatch) {
+          foreignKeys.add(fkMatch[1]);
+        }
+      }
+    }
+
+    // 2. Second pass: Parse Tables
     let currentEntity: Entity | null = null;
     let insideTable = false;
+    for (const line of lines) {
+      const trimmedLine = line.trim();
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      // Detectar início de tabela
-      if (line.startsWith('Table ') || line.match(/^table\s+/i)) {
-        const tableName = line.replace(/Table\s+/i, '').replace(/\s*{.*/, '').trim();
+      if (trimmedLine.match(/^table\s+\w+\s*{/i)) {
+        const tableName = trimmedLine.replace(/table\s+/i, '').replace(/\s*{.*/, '').trim();
         currentEntity = {
           name: tableName,
           properties: [],
@@ -49,17 +69,15 @@ export class DBDiagramParser {
         continue;
       }
 
-      // Detectar fim de tabela
-      if (line === '}' && insideTable && currentEntity) {
+      if (trimmedLine === '}' && insideTable && currentEntity) {
         entities.push(currentEntity);
         currentEntity = null;
         insideTable = false;
         continue;
       }
 
-      // Processar propriedades dentro da tabela
-      if (insideTable && currentEntity && line && !line.startsWith('//') && !line.startsWith('/*')) {
-        const property = this.parseProperty(line);
+      if (insideTable && currentEntity && trimmedLine && !trimmedLine.startsWith('//')) {
+        const property = this.parseProperty(trimmedLine, enums, foreignKeys);
         if (property) {
           currentEntity.properties.push(property);
         }
@@ -72,31 +90,38 @@ export class DBDiagramParser {
   /**
    * Parse a single property line from DBDiagram format
    * @param line The property line to parse
+   * @param enums A set of previously parsed enum names
+   * @param foreignKeys A set of foreign key column names from Ref definitions
    * @returns Parsed property or null if invalid
    */
-  private static parseProperty(line: string): Property | null {
-    // Formato típico: id int [pk, increment]
-    // ou: name varchar(255) [not null]
-    const propertyMatch = line.match(/^(\w+)\s+(\w+(?:\([^)]+\))?)\s*(?:\[([^\]]+)\])?/);
-    
+  private static parseProperty(line: string, enums: Set<string>, foreignKeys: Set<string>): Property | null {
+    const propertyMatch = line.match(/^(\w+)\s+([\w\d_]+(?:\([^)]+\))?)\s*(?:\[([^\]]*)\])?/);
     if (!propertyMatch) {
       return null;
     }
 
-    const [, name, type, attributes] = propertyMatch;
-    
-    // Extrair tipo base (sem parênteses)
-    const baseType = type.replace(/\([^)]+\)/, '').toLowerCase();
-    const csharpType = this.typeMapping[baseType] || 'string';
+    const [, name, type, attributesStr] = propertyMatch;
+    const attributes = attributesStr || '';
+    const baseType = type.replace(/\(.*\)/, '').toLowerCase();
 
-    // Verificar se é nullable ou primary key
-    const isNullable = !attributes?.includes('not null') && !attributes?.includes('pk');
-    const isPrimaryKey = attributes?.includes('pk') || attributes?.includes('primary key');
+    let csharpType: string;
+    const isPrimaryKey = attributes.includes('pk') || attributes.includes('primary key');
+    const isForeignKeyRef = attributes.includes('ref:');
+    const isStandaloneForeignKey = foreignKeys.has(name);
+    const isIdByName = name.toLowerCase() === 'id' || name.toLowerCase().endsWith('_id');
+
+    if (isPrimaryKey || isForeignKeyRef || isStandaloneForeignKey || isIdByName) {
+      csharpType = 'Guid';
+    } else if (enums.has(baseType)) {
+      csharpType = baseType;
+    } else {
+      csharpType = this.typeMapping[baseType] || 'string';
+    }
 
     return {
       name: name,
-      type: isPrimaryKey ? 'int' : csharpType,
-      collectionType: '' // Propriedades normais não são coleções
+      type: csharpType,
+      collectionType: ''
     };
   }
 
@@ -110,10 +135,12 @@ export class DBDiagramParser {
       return { isValid: false, error: 'Conteúdo do arquivo está vazio' };
     }
 
-    // Verificar se contém pelo menos uma tabela
+    // Verificar se contém pelo menos uma tabela ou enum
     const hasTable = /Table\s+\w+|table\s+\w+/i.test(content);
-    if (!hasTable) {
-      return { isValid: false, error: 'Nenhuma definição de tabela encontrada no formato DBDiagram' };
+    const hasEnum = /Enum\s+\w+|enum\s+\w+/i.test(content);
+    
+    if (!hasTable && !hasEnum) {
+      return { isValid: false, error: 'Nenhuma definição de tabela ou enum encontrada no formato DBDiagram' };
     }
 
     return { isValid: true };
