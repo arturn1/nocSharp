@@ -18,6 +18,7 @@ import AppLayout from '../components/Layout';
 import HomePage from './HomePage';
 import ImportPage from './ImportPage';
 import ScannerPage from './ScannerPage';
+import { LogsPage } from './LogsPage';
 import DotNetDashboard from './DotNetDashboard/DotNetDashboard';
 import ModalsManager from '../components/ModalsManager';
 import ProjectModal from '../components/ProjectModal';
@@ -116,10 +117,10 @@ const Home: React.FC = () => {
     setIsExecutingCommands(true);
 
     try {
-      console.log('🚀 Iniciando execução de comandos do scanner modal...');
-      console.log('📋 Comandos a executar:', scannerModalData.commands.length);
-      console.log('📝 Entidades modificadas:', scannerModalData.existingEntities.length);
-      console.log('🆕 Entidades novas:', scannerModalData.newEntities.length);
+      dispatch({ type: 'ADD_LOG', payload: '🚀 Iniciando execução de comandos do scanner modal...' });
+      dispatch({ type: 'ADD_LOG', payload: `📋 Comandos a executar: ${scannerModalData.commands.length}` });
+      dispatch({ type: 'ADD_LOG', payload: `📝 Entidades modificadas: ${scannerModalData.existingEntities.length}` });
+      dispatch({ type: 'ADD_LOG', payload: `🆕 Entidades novas: ${scannerModalData.newEntities.length}` });
 
       mergeEntities(scannerModalData.newEntities, false);
       
@@ -133,28 +134,28 @@ const Home: React.FC = () => {
       const result = await ProjectManager.executeCommands(scannerModalData.commands, projectContext);
       
       if (result.success) {
-        console.log('✅ Comandos executados com sucesso! Iniciando processo de fechamento e reload...');
+        dispatch({ type: 'ADD_LOG', payload: '✅ Comandos executados com sucesso! Iniciando processo de fechamento e reload...' });
         
         // Fechar o modal imediatamente após sucesso
         setScannerModal(false);
-        console.log('❌ Modal fechado');
+        dispatch({ type: 'ADD_LOG', payload: '❌ Modal fechado' });
         
         // Forçar refresh do EntityScanner
         setScannerRefreshTrigger(prev => {
-          console.log('🔄 Incrementando refreshTrigger de', prev, 'para', prev + 1);
+          dispatch({ type: 'ADD_LOG', payload: `🔄 Incrementando refreshTrigger de ${prev} para ${prev + 1}` });
           return prev + 1;
         });
         
         // Recarregar o projeto após a execução dos comandos
         if (state.directoryPath) {
           try {
-            console.log('🔄 Recarregando projeto após atualização...');
+            dispatch({ type: 'ADD_LOG', payload: '🔄 Recarregando projeto após atualização...' });
             const { scanExistingEntities, getProjectMetadata } = await import('../services/EntityScanService');
             
             // Reescanear as entidades do projeto
             const scanResult = await scanExistingEntities(state.directoryPath);
             if (scanResult.success) {
-              console.log('✅ Projeto recarregado com sucesso:', scanResult.entities.length, 'entidades encontradas');
+              dispatch({ type: 'ADD_LOG', payload: `✅ Projeto recarregado com sucesso: ${scanResult.entities.length} entidades encontradas` });
               
               // Atualizar as entidades no estado global
               mergeEntities(scanResult.entities, true); // true para substituir completamente
@@ -162,7 +163,7 @@ const Home: React.FC = () => {
               // Recarregar os metadados do projeto
               const metadata = await getProjectMetadata(state.directoryPath);
               if (metadata.projectName) {
-                console.log('📄 Metadados do projeto atualizados:', metadata.projectName);
+                dispatch({ type: 'ADD_LOG', payload: `📄 Metadados do projeto atualizados: ${metadata.projectName}` });
               }
               
               // Mostrar mensagem de sucesso
@@ -181,32 +182,32 @@ const Home: React.FC = () => {
               // Importar message dinamicamente para evitar problemas
               const { message } = await import('antd');
               message.success(successMessage);
-              console.log('💬 Mensagem de sucesso exibida:', successMessage);
+              dispatch({ type: 'ADD_LOG', payload: `💬 Mensagem de sucesso exibida: ${successMessage}` });
               
             } else {
-              console.warn('⚠️ Falha ao recarregar projeto:', scanResult.errors);
+              dispatch({ type: 'ADD_ERROR', payload: `⚠️ Falha ao recarregar projeto: ${scanResult.errors.join(', ')}` });
               const { message } = await import('antd');
               message.warning('Comandos executados, mas houve problemas ao recarregar o projeto');
             }
           } catch (reloadError) {
-            console.error('❌ Erro ao recarregar projeto:', reloadError);
+            dispatch({ type: 'ADD_ERROR', payload: `❌ Erro ao recarregar projeto: ${reloadError.message}` });
             const { message } = await import('antd');
             message.error('Comandos executados, mas falha ao recarregar projeto');
           }
         }
       } else {
-        console.error('❌ Failed to execute commands:', result.error);
+        dispatch({ type: 'ADD_ERROR', payload: `❌ Failed to execute commands: ${result.error}` });
         const { message } = await import('antd');
         message.error(`Erro ao executar comandos: ${result.error}`);
       }
       
     } catch (error) {
-      console.error('❌ Error executing scanner commands:', error);
+      dispatch({ type: 'ADD_ERROR', payload: `❌ Error executing scanner commands: ${error.message}` });
       const { message } = await import('antd');
       message.error(`Erro inesperado: ${error.message}`);
     } finally {
       setIsExecutingCommands(false);
-      console.log('🏁 Processo de execução de comandos finalizado');
+      dispatch({ type: 'ADD_LOG', payload: '🏁 Processo de execução de comandos finalizado' });
     }
   };
 
@@ -242,13 +243,13 @@ const Home: React.FC = () => {
 
         // Recarregar o projeto após a atualização das entidades modificadas
         try {
-          console.log('Recarregando projeto após atualização de entidades modificadas...');
+          dispatch({ type: 'ADD_LOG', payload: 'Recarregando projeto após atualização de entidades modificadas...' });
           const { scanExistingEntities, getProjectMetadata } = await import('../services/EntityScanService');
           
           // Reescanear as entidades do projeto
           const scanResult = await scanExistingEntities(state.directoryPath);
           if (scanResult.success) {
-            console.log('Projeto recarregado com sucesso:', scanResult.entities.length, 'entidades encontradas');
+            dispatch({ type: 'ADD_LOG', payload: `Projeto recarregado com sucesso: ${scanResult.entities.length} entidades encontradas` });
             
             // Atualizar as entidades no estado global
             mergeEntities(scanResult.entities, true); // true para substituir completamente
@@ -256,19 +257,19 @@ const Home: React.FC = () => {
             // Recarregar os metadados do projeto
             const metadata = await getProjectMetadata(state.directoryPath);
             if (metadata.projectName) {
-              console.log('Metadados do projeto atualizados:', metadata.projectName);
+              dispatch({ type: 'ADD_LOG', payload: `Metadados do projeto atualizados: ${metadata.projectName}` });
             }
           } else {
-            console.warn('Falha ao recarregar projeto:', scanResult.errors);
+            dispatch({ type: 'ADD_ERROR', payload: `Falha ao recarregar projeto: ${scanResult.errors.join(', ')}` });
           }
         } catch (reloadError) {
-          console.error('Erro ao recarregar projeto:', reloadError);
+          dispatch({ type: 'ADD_ERROR', payload: `Erro ao recarregar projeto: ${reloadError.message}` });
         }
       } else if (!result.success) {
-        console.error('Failed to update entities:', result.error);
+        dispatch({ type: 'ADD_ERROR', payload: `Failed to update entities: ${result.error}` });
       }
     } catch (error) {
-      console.error('Error updating modified entities:', error);
+      dispatch({ type: 'ADD_ERROR', payload: `Error updating modified entities: ${error.message}` });
     } finally {
       setIsExecutingCommands(false);
     }
@@ -336,11 +337,11 @@ const Home: React.FC = () => {
       const metadata = await getProjectMetadata(directoryPath);
       
       if (metadata.projectName) {
-        console.log('Metadados do projeto carregados:', metadata.projectName);
+        dispatch({ type: 'ADD_LOG', payload: `Metadados do projeto carregados: ${metadata.projectName}` });
         dispatch({ type: 'ADD_LOG', payload: `Projeto "${metadata.projectName}" carregado com sucesso` });
       }
     } catch (error) {
-      console.warn('Não foi possível carregar metadados do projeto:', error);
+      dispatch({ type: 'ADD_ERROR', payload: `Não foi possível carregar metadados do projeto: ${error.message}` });
     }
   };
 
@@ -419,6 +420,9 @@ const Home: React.FC = () => {
             refreshTrigger={scannerRefreshTrigger}
           />
         );
+
+      case 'logs':
+        return <LogsPage />;
 
       default:
         return null;

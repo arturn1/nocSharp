@@ -13,3 +13,8 @@ root.render(
         </AppProvider>
     </ThemeProvider>
 );
+
+// Adicionar alguns logs de demonstração após 2 segundos
+setTimeout(() => {
+  window.dispatchEvent(new CustomEvent('addTestLogs'));
+}, 2000);

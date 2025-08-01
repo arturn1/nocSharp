@@ -7,6 +7,7 @@ import { scanExistingEntities, getProjectMetadata } from '../../services/EntityS
 import { EntityCleanService } from '../../services/EntityCleanService';
 import { ProjectContext } from '../../services/ProjectManager';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAppContext } from '../../contexts/AppContext';
 import DBDiagramUpload from '../DBDiagramUpload';
 import EntityForm from '../EntityForm';
 
@@ -75,6 +76,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
   refreshTrigger
 }) => {
   const { isDarkMode } = useTheme();
+  const { dispatch } = useAppContext();
   const [selectedPath, setSelectedPath] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
@@ -87,7 +89,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
   // Função centralizada para recarregar o projeto
   const reloadProject = async (showLoadingMessage = true, successMessage?: string) => {
     if (!projectInfo?.path) {
-      console.warn('Não é possível recarregar: caminho do projeto não encontrado');
+      dispatch({ type: 'ADD_ERROR', payload: 'Não é possível recarregar: caminho do projeto não encontrado' });
       return { success: false, error: 'Caminho do projeto não encontrado' };
     }
 
@@ -127,7 +129,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
         const finalMessage = successMessage || `Projeto recarregado: ${scanResult.entities.length} entidades encontradas`;
         message.success(finalMessage);
         
-        console.log(`Projeto recarregado com sucesso: ${scanResult.entities.length} entidades encontradas`);
+        dispatch({ type: 'ADD_LOG', payload: `Projeto recarregado com sucesso: ${scanResult.entities.length} entidades encontradas` });
         return { success: true, entities: scanResult.entities };
         
       } else {
@@ -135,7 +137,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
           hideReloadMessage();
         }
         message.warning('Projeto recarregado, mas podem haver inconsistências');
-        console.error('Erro ao reescanear projeto:', scanResult.errors);
+        dispatch({ type: 'ADD_ERROR', payload: `Erro ao reescanear projeto: ${scanResult.errors.join(', ')}` });
         return { success: false, error: 'Erro ao reescanear projeto', details: scanResult.errors };
       }
       
@@ -144,7 +146,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
         hideReloadMessage();
       }
       message.error('Erro ao recarregar projeto');
-      console.error('Erro ao recarregar projeto:', error);
+      dispatch({ type: 'ADD_ERROR', payload: `Erro ao recarregar projeto: ${error.message}` });
       return { success: false, error: 'Erro inesperado ao recarregar projeto', details: error };
     }
   };
@@ -157,7 +159,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
         setErrors([]);
 
         try {
-          console.log('EntityScanner: Auto-loading project from', currentProjectPath, 'refreshTrigger:', refreshTrigger);
+          dispatch({ type: 'ADD_LOG', payload: `EntityScanner: Auto-loading project from ${currentProjectPath}, refreshTrigger: ${refreshTrigger}` });
           
           // Get project metadata first
           const metadata = await getProjectMetadata(currentProjectPath);
@@ -170,7 +172,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
           const scanResult = await scanExistingEntities(currentProjectPath);
 
           if (scanResult.success) {
-            console.log('EntityScanner: Loaded', scanResult.entities.length, 'entities');
+            dispatch({ type: 'ADD_LOG', payload: `EntityScanner: Loaded ${scanResult.entities.length} entities` });
             setScannedEntities(scanResult.entities);
             
             if (onLoadProject && metadata.projectName) {
@@ -189,7 +191,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
             setScannedEntities([]);
           }
         } catch (error) {
-          console.error('EntityScanner: Failed to auto-load project:', error);
+          dispatch({ type: 'ADD_ERROR', payload: `EntityScanner: Failed to auto-load project: ${error.message}` });
           setErrors([`Failed to auto-load project: ${error.message}`]);
           setScannedEntities([]);
         } finally {
@@ -205,7 +207,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
   useEffect(() => {
     const forceReload = async () => {
       if (refreshTrigger > 0 && projectInfo?.path && isVisible) {
-        console.log('EntityScanner: Force reload triggered, refreshTrigger:', refreshTrigger);
+        dispatch({ type: 'ADD_LOG', payload: `EntityScanner: Force reload triggered, refreshTrigger: ${refreshTrigger}` });
         setIsAutoLoading(true);
         setErrors([]);
 
@@ -221,7 +223,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
           const scanResult = await scanExistingEntities(projectInfo.path);
 
           if (scanResult.success) {
-            console.log('EntityScanner: Force reload completed, loaded', scanResult.entities.length, 'entities');
+            dispatch({ type: 'ADD_LOG', payload: `EntityScanner: Force reload completed, loaded ${scanResult.entities.length} entities` });
             setScannedEntities(scanResult.entities);
             
             if (onLoadProject && metadata.projectName) {
@@ -236,7 +238,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
             setScannedEntities([]);
           }
         } catch (error) {
-          console.error('EntityScanner: Failed to force reload project:', error);
+          dispatch({ type: 'ADD_ERROR', payload: `EntityScanner: Failed to force reload project: ${error.message}` });
           setErrors([`Failed to reload project: ${error.message}`]);
         } finally {
           setIsAutoLoading(false);
@@ -328,22 +330,6 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
     }
   };
 
-  // Função para calcular entidades modificadas
-  const getModifiedEntitiesCount = () => {
-    if (originalEntities.length === 0) return 0;
-    
-    const nonBaseEntities = existingEntities.filter(entity => entity.name !== 'BaseEntity');
-    let modifiedCount = 0;
-    
-    nonBaseEntities.forEach(currentEntity => {
-      const originalEntity = originalEntities.find(orig => orig.name === currentEntity.name);
-      if (!originalEntity || JSON.stringify(currentEntity) !== JSON.stringify(originalEntity)) {
-        modifiedCount++;
-      }
-    });
-    
-    return modifiedCount;
-  };
 
   // Função para limpeza de entidades
   const handleCleanEntities = async (entityNames: string[]) => {

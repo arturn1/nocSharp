@@ -11,7 +11,8 @@ import {
   CodeOutlined,
   SettingOutlined,
   PlusCircleOutlined,
-  ApiOutlined
+  ApiOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Entity } from '../../models/Entity';
@@ -85,6 +86,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({
       key: 'scanner',
       icon: <CodeOutlined />,
       label: 'Editor',
+    },
+    {
+      key: 'logs',
+      icon: <FileTextOutlined />,
+      label: 'Logs',
     },
   ];
 
