@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('electron', {
     showOpenDialog: (options: any) => ipcRenderer.invoke('show-open-dialog', options),
   },
   checkEntityExists: (projectPath: string, entityName: string) => ipcRenderer.invoke('check-entity-exists', projectPath, entityName),
-  scanExistingEntities: (projectPath: string) => ipcRenderer.invoke('scan-existing-entities', projectPath)
+  scanExistingEntities: (projectPath: string) => ipcRenderer.invoke('scan-existing-entities', projectPath),
+  scanDirectory: (dirPath: string) => ipcRenderer.invoke('scan-directory', dirPath),
+  readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath)
 });
 

@@ -319,6 +319,31 @@ const Home: React.FC = () => {
     );
   };
 
+  const handleCreateNewProject = async (projectName: string, directoryPath: string) => {
+    // Atualizar o estado global
+    dispatch({ type: 'SET_PROJECT_NAME', payload: projectName });
+    dispatch({ type: 'SET_DIRECTORY_PATH', payload: directoryPath });
+    dispatch({ type: 'SET_IS_EXISTING_PROJECT', payload: false });
+    
+    // Limpar entidades existentes para começar do zero
+    dispatch({ type: 'SET_ENTITIES', payload: [] });
+    setOriginalEntities([]);
+    setHasEntityChanges(false);
+
+    // Tentar carregar metadados do projeto recém-criado
+    try {
+      const { getProjectMetadata } = await import('../services/EntityScanService');
+      const metadata = await getProjectMetadata(directoryPath);
+      
+      if (metadata.projectName) {
+        console.log('Metadados do projeto carregados:', metadata.projectName);
+        dispatch({ type: 'ADD_LOG', payload: `Projeto "${metadata.projectName}" carregado com sucesso` });
+      }
+    } catch (error) {
+      console.warn('Não foi possível carregar metadados do projeto:', error);
+    }
+  };
+
   const generateCommandsPreview = () => {
     return CommandFactory.generateCommands(entities, {
       isExistingProject: state.isExistingProject,
@@ -346,6 +371,7 @@ const Home: React.FC = () => {
             entities={entities}
             originalEntities={originalEntities}
             onMenuChange={setActiveMenu}
+            onCreateNewProject={handleCreateNewProject}
           />
         );
 

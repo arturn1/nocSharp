@@ -24,6 +24,7 @@ import {
 import { DotNetProjectAnalyzer, type DotNetProjectAnalysis } from '../../services/DotNetProjectAnalyzer';
 import { useAppContext } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import APIEndpoints from './components/APIEndpoints';
 
 const { Title, Text } = Typography;
 
@@ -538,157 +539,9 @@ const DotNetDashboard: React.FC<DotNetDashboardProps> = ({ projectPath }) => {
         </Card>
       )}
 
-      {/* Controllers e API Endpoints */}
+      {/* Controllers e API Endpoints - Usando dados reais */}
       {analysis.controllers.length > 0 && (
-        <Card 
-          title="API Controllers" 
-          style={{ 
-            marginBottom: '32px',
-            borderRadius: '12px',
-            boxShadow: isDarkMode ? '0 4px 12px rgba(0, 0, 0, 0.3)' : '0 4px 12px rgba(0, 0, 0, 0.1)'
-          }}
-          extra={
-            <Popover 
-              content={
-                <div style={{ 
-                  maxWidth: '350px',
-                  backgroundColor: isDarkMode ? '#141414' : '#ffffff',
-                  color: isDarkMode ? '#ffffff' : '#000000',
-                  padding: '12px',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{ marginBottom: '12px' }}>
-                    <strong style={{ 
-                      fontSize: '14px',
-                      color: isDarkMode ? '#ffffff' : '#000000'
-                    }}>
-                      🎯 API Controllers
-                    </strong>
-                  </div>
-                  <p style={{ 
-                    margin: '8px 0', 
-                    color: isDarkMode ? '#d9d9d9' : '#666666', 
-                    fontSize: '13px' 
-                  }}>
-                    Controllers de API gerados automaticamente baseados nas entidades do projeto. 
-                    Cada controller fornece endpoints REST completos para operações CRUD.
-                  </p>
-                  <div style={{ marginTop: '12px' }}>
-                    <strong style={{ 
-                      fontSize: '13px',
-                      color: isDarkMode ? '#ffffff' : '#000000'
-                    }}>
-                      📡 Endpoints disponíveis:
-                    </strong>
-                    <ul style={{ 
-                      marginTop: '8px', 
-                      paddingLeft: '16px', 
-                      fontSize: '12px',
-                      color: isDarkMode ? '#d9d9d9' : '#000000'
-                    }}>
-                      <li><span style={{ color: '#1890ff' }}>GET</span> - Listagem e consulta</li>
-                      <li><span style={{ color: '#52c41a' }}>POST</span> - Criação de registros</li>
-                      <li><span style={{ color: '#fa8c16' }}>PUT</span> - Atualização completa</li>
-                      <li><span style={{ color: '#ff4d4f' }}>DELETE</span> - Remoção de registros</li>
-                    </ul>
-                  </div>
-                </div>
-              } 
-              title={
-                <span style={{ 
-                  color: isDarkMode ? '#ffffff' : '#000000',
-                  fontWeight: 'bold'
-                }}>
-                  Informação
-                </span>
-              }
-              overlayStyle={{
-                backgroundColor: isDarkMode ? '#141414' : '#ffffff'
-              }}
-            >
-              <InfoCircleOutlined style={{ color: '#1890ff', cursor: 'pointer' }} />
-            </Popover>
-          }
-        >
-          <Row gutter={[24, 24]}>
-            {analysis.controllers.map((controller, index) => (
-              <Col xs={24} sm={12} lg={8} key={index}>
-                <Card 
-                  size="small" 
-                  title={
-                    <Space>
-                      <ApiOutlined style={{ color: '#1890ff' }} />
-                      {controller.name}
-                    </Space>
-                  }
-                  style={{ 
-                    height: '100%',
-                    borderRadius: '8px',
-                    boxShadow: isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.08)'
-                  }}
-                >
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <div style={{ 
-                      padding: '8px 12px', 
-                      background: isDarkMode ? '#262626' : '#f6f6f6', 
-                      borderRadius: '6px',
-                      textAlign: 'center'
-                    }}>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>
-                        {controller.endpoints.length} endpoint{controller.endpoints.length !== 1 ? 's' : ''}
-                      </Text>
-                    </div>
-                    <Space wrap>
-                      {controller.endpoints.map((endpoint, i) => (
-                        <Popover
-                          key={i}
-                          content={
-                            <div style={{ 
-                              padding: '8px',
-                              backgroundColor: isDarkMode ? '#141414' : '#ffffff',
-                              borderRadius: '6px'
-                            }}>
-                              <div style={{ 
-                                color: isDarkMode ? '#ffffff' : '#000000',
-                                fontSize: '13px',
-                                fontWeight: 'bold'
-                              }}>
-                                {endpoint.method} Endpoint
-                              </div>
-                              <div style={{ 
-                                color: isDarkMode ? '#d9d9d9' : '#666666',
-                                fontSize: '12px',
-                                marginTop: '4px',
-                                fontFamily: 'monospace'
-                              }}>
-                                {endpoint.method} {endpoint.route}
-                              </div>
-                            </div>
-                          }
-                          overlayStyle={{
-                            backgroundColor: isDarkMode ? '#141414' : '#ffffff'
-                          }}
-                        >
-                          <Tag 
-                            color={
-                              endpoint.method === 'GET' ? 'blue' :
-                              endpoint.method === 'POST' ? 'green' :
-                              endpoint.method === 'PUT' ? 'orange' :
-                              endpoint.method === 'DELETE' ? 'red' : 'default'
-                            }
-                            style={{ cursor: 'pointer', margin: '2px' }}
-                          >
-                            {endpoint.method}
-                          </Tag>
-                        </Popover>
-                      ))}
-                    </Space>
-                  </Space>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </Card>
+        <APIEndpoints analysis={analysis} />
       )}
     </div>
   );

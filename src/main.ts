@@ -185,6 +185,64 @@ ipcMain.handle('scan-existing-entities', async (event, projectPath) => {
   });
 });
 
+// Handler para escanear diretório (para análise de Controllers)
+ipcMain.handle('scan-directory', async (event, directoryPath) => {
+  return new Promise((resolve) => {
+    try {
+      if (!fs.existsSync(directoryPath)) {
+        resolve(null);
+        return;
+      }
+      
+      // Função recursiva para encontrar arquivos Controller
+      function findControllerFiles(dir: string, files: string[] = []): string[] {
+        try {
+          const items = fs.readdirSync(dir, { withFileTypes: true });
+          
+          for (const item of items) {
+            const fullPath = path.join(dir, item.name);
+            
+            if (item.isFile() && item.name.endsWith('Controller.cs')) {
+              files.push(fullPath);
+            } else if (item.isDirectory()) {
+              // Buscar recursivamente em subdiretórios
+              findControllerFiles(fullPath, files);
+            }
+          }
+        } catch (error) {
+          console.warn(`Erro ao ler diretório ${dir}:`, error);
+        }
+        
+        return files;
+      }
+      
+      const controllerFiles = findControllerFiles(directoryPath);
+      resolve(controllerFiles);
+    } catch (error) {
+      console.error('Erro ao escanear diretório:', error);
+      resolve([]);
+    }
+  });
+});
+
+// Handler para ler arquivo específico (para análise de Controllers)
+ipcMain.handle('read-file', async (event, filePath) => {
+  return new Promise((resolve) => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        resolve(null);
+        return;
+      }
+      
+      const content = fs.readFileSync(filePath, 'utf8');
+      resolve(content);
+    } catch (error) {
+      console.error('Erro ao ler arquivo:', error);
+      resolve(null);
+    }
+  });
+});
+
 function parseEntityProperties(content: string) {
   const properties = [];
   

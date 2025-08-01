@@ -2,6 +2,7 @@ import { ProjectData } from '../models/ProjectData';
 import { joinPaths } from '../utils/pathUtils';
 import { Entity } from '../models/Entity';
 import { CommandFactory } from './CommandFactory';
+import { nocSharpCli } from './NocSharpCliService';
 
 export interface ProjectCreationResult {
   success: boolean;
@@ -46,9 +47,14 @@ export const createProject = async (
     return { success: false, logs, errors };
   }
 
-  if (entities.length === 0) {
-    errors.push('At least one entity is required');
+  // Verificar se o CLI nocsharp está disponível antes de prosseguir
+  const cliCheck = await nocSharpCli.checkCliAvailability();
+  if (!cliCheck.isAvailable) {
+    errors.push(`nocsharp CLI is not available: ${cliCheck.error}`);
+    errors.push('Please install nocsharp CLI and ensure it is in your system PATH');
     return { success: false, logs, errors };
+  } else {
+    logs.push(`✓ nocsharp CLI is available: ${cliCheck.version || 'version unknown'}`);
   }
 
   // Validate entities

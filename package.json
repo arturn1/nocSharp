@@ -40,6 +40,8 @@
   "license": "MIT",
   "dependencies": {
     "antd": "^5.20.0",
+    "chalk": "^5.4.1",
+    "commander": "^14.0.0",
     "electron-squirrel-startup": "^1.0.1",
     "nocsharp": "^4.0.11",
     "react": "^18.3.1",

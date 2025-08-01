@@ -107,6 +107,7 @@ export class DotNetProjectAnalyzer {
   static async analyzeProject(projectPath: string): Promise<DotNetProjectAnalysis> {
     try {
       console.log('🔍 Iniciando análise do projeto .NET em:', projectPath);
+      console.log('📅 Timestamp:', new Date().toISOString());
       
       // Usar os serviços existentes do projeto para obter dados reais
       const { scanExistingEntities, getProjectMetadata } = await import('./EntityScanService');
@@ -114,20 +115,40 @@ export class DotNetProjectAnalyzer {
       const [
         projectMetadata,
         entitiesResult,
-        fileStructure
+        fileStructure,
+        realControllers
       ] = await Promise.all([
         getProjectMetadata(projectPath),
         scanExistingEntities(projectPath),
-        this.analyzeFileStructure(projectPath)
+        this.analyzeFileStructure(projectPath),
+        this.scanControllerFiles(projectPath)
       ]);
+
+      console.log('📊 Resultados da análise:');
+      console.log('  - Metadados:', projectMetadata);
+      console.log('  - Entidades encontradas:', entitiesResult.success ? entitiesResult.entities.length : 0);
+      console.log('  - Controllers reais encontrados:', realControllers.length);
+      console.log('  - Estrutura de arquivos:', {
+        totalFiles: fileStructure.totalFiles,
+        csFiles: fileStructure.csFiles,
+        projects: fileStructure.projects.length
+      });
 
       // Construir análise baseada em dados reais
       const analysis = this.buildAnalysisFromRealData(
         projectPath,
         projectMetadata,
         entitiesResult,
-        fileStructure
+        fileStructure,
+        realControllers
       );
+
+      console.log('✅ Análise concluída com sucesso!');
+      console.log('📈 Resumo final:');
+      console.log('  - Controllers:', analysis.controllers.length);
+      console.log('  - Total de Endpoints:', analysis.controllers.reduce((total, c) => total + c.endpoints.length, 0));
+      console.log('  - Projetos:', analysis.projects.length);
+      console.log('  - Entidades:', analysis.database.entities.length);
 
       return analysis;
     } catch (error) {
@@ -137,18 +158,304 @@ export class DotNetProjectAnalyzer {
   }
 
   /**
+   * Escaneia e analisa arquivos de Controllers reais do projeto
+   */
+  static async scanControllerFiles(projectPath: string): Promise<ControllerInfo[]> {
+    try {
+      console.log('🔍 Buscando arquivos de Controllers em:', projectPath);
+      
+      const controllers: ControllerInfo[] = [];
+      const controllerFiles = await this.findControllerFiles(projectPath);
+      
+      console.log(`📁 Encontrados ${controllerFiles.length} arquivos de Controllers`);
+      
+      for (const filePath of controllerFiles) {
+        try {
+          const controllerInfo = await this.analyzeControllerFile(filePath);
+          if (controllerInfo) {
+            controllers.push(controllerInfo);
+            console.log(`✅ Controller analisado: ${controllerInfo.name} com ${controllerInfo.endpoints.length} endpoints`);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Erro ao analisar controller ${filePath}:`, (error as Error).message);
+        }
+      }
+      
+      return controllers;
+    } catch (error) {
+      console.error('❌ Erro ao escanear Controllers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Encontra todos os arquivos de Controllers no projeto
+   */
+  private static async findControllerFiles(projectPath: string): Promise<string[]> {
+    try {
+      // Usar Electron IPC para acessar sistema de arquivos
+      // O handler scan-directory já faz busca recursiva por arquivos Controller.cs
+      const controllerFiles = await window.electron.scanDirectory(projectPath);
+      
+      return controllerFiles || [];
+    } catch (error) {
+      console.error('Erro ao encontrar arquivos de Controllers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Analisa um arquivo de Controller específico
+   */
+  private static async analyzeControllerFile(filePath: string): Promise<ControllerInfo | null> {
+    try {
+      // Usar Electron IPC para ler arquivo
+      const content = await window.electron.readFile(filePath);
+      if (!content) {
+        throw new Error('Não foi possível ler o arquivo');
+      }
+      
+      const controllerName = filePath.split(/[/\\]/).pop()?.replace('.cs', '') || 'Unknown';
+      
+      console.log(`📖 Analisando Controller: ${controllerName}`);
+      
+      // Extrair informações do Controller
+      const endpoints = this.extractEndpointsFromController(content, controllerName);
+      const hasAuthentication = this.checkForAuthentication(content);
+      
+      return {
+        name: controllerName,
+        path: filePath,
+        endpoints: endpoints,
+        hasAuthentication: hasAuthentication
+      };
+      
+    } catch (error) {
+      console.error(`Erro ao ler arquivo ${filePath}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Extrai endpoints de um arquivo de Controller
+   */
+  private static extractEndpointsFromController(content: string, controllerName: string): EndpointInfo[] {
+    const endpoints: EndpointInfo[] = [];
+    
+    // Padrões para detectar métodos HTTP
+    const methodPatterns = [
+      { pattern: /\[HttpGet(?:\("([^"]*)"\))?\]\s*(?:public\s+)?(?:async\s+)?(?:Task<)?(\w+)(?:>)?\s+(\w+)\s*\([^)]*\)/g, method: 'GET' as const },
+      { pattern: /\[HttpPost(?:\("([^"]*)"\))?\]\s*(?:public\s+)?(?:async\s+)?(?:Task<)?(\w+)(?:>)?\s+(\w+)\s*\([^)]*\)/g, method: 'POST' as const },
+      { pattern: /\[HttpPut(?:\("([^"]*)"\))?\]\s*(?:public\s+)?(?:async\s+)?(?:Task<)?(\w+)(?:>)?\s+(\w+)\s*\([^)]*\)/g, method: 'PUT' as const },
+      { pattern: /\[HttpDelete(?:\("([^"]*)"\))?\]\s*(?:public\s+)?(?:async\s+)?(?:Task<)?(\w+)(?:>)?\s+(\w+)\s*\([^)]*\)/g, method: 'DELETE' as const },
+      { pattern: /\[HttpPatch(?:\("([^"]*)"\))?\]\s*(?:public\s+)?(?:async\s+)?(?:Task<)?(\w+)(?:>)?\s+(\w+)\s*\([^)]*\)/g, method: 'PATCH' as const }
+    ];
+    
+    // Extrair rota base do Controller
+    const baseRoute = this.extractBaseRoute(content);
+    
+    for (const { pattern, method } of methodPatterns) {
+      let match;
+      pattern.lastIndex = 0; // Reset regex
+      
+      while ((match = pattern.exec(content)) !== null) {
+        const routeParam = match[1] || '';
+        const returnType = match[2] || 'IActionResult';
+        const actionName = match[3];
+        
+        // Construir rota completa
+        let fullRoute = baseRoute;
+        if (routeParam) {
+          fullRoute = fullRoute.endsWith('/') ? fullRoute + routeParam : fullRoute + '/' + routeParam;
+        }
+        
+        // Extrair parâmetros do método
+        const parameters = this.extractMethodParameters(content, actionName);
+        
+        // Verificar autenticação no método
+        const hasAuth = this.checkMethodAuthentication(content, actionName);
+        
+        endpoints.push({
+          method,
+          route: fullRoute,
+          actionName,
+          hasAuth,
+          parameters,
+          returnType
+        });
+        
+        console.log(`  📍 Endpoint encontrado: ${method} ${fullRoute} (${actionName})`);
+      }
+    }
+    
+    return endpoints;
+  }
+
+  /**
+   * Extrai a rota base do Controller
+   */
+  private static extractBaseRoute(content: string): string {
+    // Buscar por [Route("...")]
+    const routeMatch = content.match(/\[Route\("([^"]+)"\)\]/);
+    if (routeMatch) {
+      let route = routeMatch[1];
+      // Substituir [controller] pelo nome do controller
+      const controllerMatch = content.match(/class\s+(\w+)Controller/);
+      if (controllerMatch && route.includes('[controller]')) {
+        const controllerName = controllerMatch[1].toLowerCase();
+        route = route.replace('[controller]', controllerName);
+      }
+      return route.startsWith('/') ? route : '/' + route;
+    }
+    
+    // Se não encontrar Route, usar padrão api/controller
+    const controllerMatch = content.match(/class\s+(\w+)Controller/);
+    if (controllerMatch) {
+      const controllerName = controllerMatch[1].toLowerCase();
+      return `/api/${controllerName}`;
+    }
+    
+    return '/api/unknown';
+  }
+
+  /**
+   * Verifica se o Controller tem autenticação
+   */
+  private static checkForAuthentication(content: string): boolean {
+    const authPatterns = [
+      /\[Authorize\]/,
+      /\[ApiKeyAuth\]/,
+      /\[JwtAuth\]/,
+      /\[Bearer\]/,
+      /RequireAuthorization/,
+      /\.RequireAuthorization\(/
+    ];
+    
+    return authPatterns.some(pattern => pattern.test(content));
+  }
+
+  /**
+   * Verifica autenticação em um método específico
+   */
+  private static checkMethodAuthentication(content: string, methodName: string): boolean {
+    // Buscar por atributos de autenticação antes do método
+    const methodPattern = new RegExp(`(\\[Authorize[^\\]]*\\]\\s*)?(?:public\\s+)?(?:async\\s+)?(?:Task<)?\\w+(?:>)?\\s+${methodName}\\s*\\([^)]*\\)`, 'g');
+    const match = methodPattern.exec(content);
+    
+    return match ? !!match[1] : false;
+  }
+
+  /**
+   * Extrai parâmetros de um método
+   */
+  private static extractMethodParameters(content: string, methodName: string): string[] {
+    const methodPattern = new RegExp(`(?:public\\s+)?(?:async\\s+)?(?:Task<)?\\w+(?:>)?\\s+${methodName}\\s*\\(([^)]*)\\)`, 'g');
+    const match = methodPattern.exec(content);
+    
+    if (!match || !match[1]) {
+      return [];
+    }
+    
+    const params = match[1];
+    const parameters: string[] = [];
+    
+    // Dividir parâmetros por vírgula, mas cuidar com tipos genéricos
+    const paramParts = this.splitParameterString(params);
+    
+    for (const param of paramParts) {
+      const cleanParam = param.trim();
+      if (cleanParam && !cleanParam.includes('[FromServices]')) {
+        // Extrair informações do parâmetro
+        const paramInfo = this.parseParameterInfo(cleanParam);
+        if (paramInfo) {
+          parameters.push(paramInfo);
+        }
+      }
+    }
+    
+    return parameters;
+  }
+
+  /**
+   * Divide string de parâmetros respeitando tipos genéricos
+   */
+  private static splitParameterString(params: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let bracketCount = 0;
+    let inGeneric = false;
+    
+    for (let i = 0; i < params.length; i++) {
+      const char = params[i];
+      
+      if (char === '<') {
+        inGeneric = true;
+        bracketCount++;
+      } else if (char === '>') {
+        bracketCount--;
+        if (bracketCount === 0) {
+          inGeneric = false;
+        }
+      } else if (char === ',' && !inGeneric) {
+        result.push(current.trim());
+        current = '';
+        continue;
+      }
+      
+      current += char;
+    }
+    
+    if (current.trim()) {
+      result.push(current.trim());
+    }
+    
+    return result;
+  }
+
+  /**
+   * Analisa informações de um parâmetro individual
+   */
+  private static parseParameterInfo(param: string): string | null {
+    // Remover atributos como [FromBody], [FromQuery], etc.
+    let cleanParam = param.replace(/\[[^\]]*\]/g, '').trim();
+    
+    // Extrair apenas o nome do parâmetro (última palavra)
+    const parts = cleanParam.split(/\s+/);
+    const paramName = parts[parts.length - 1];
+    
+    // Verificar se é um parâmetro válido
+    if (paramName && 
+        !paramName.includes('(') && 
+        !paramName.includes(')') && 
+        !paramName.includes('[') &&
+        paramName !== 'handler') {
+      
+      // Se tem tipo antes do nome, incluir o tipo
+      if (parts.length >= 2) {
+        const type = parts[parts.length - 2];
+        // Para parâmetros de rota como {id}, extrair da URL
+        if (['int', 'Guid', 'string', 'long'].includes(type)) {
+          return `{${paramName}}`;
+        }
+      }
+      
+      return paramName;
+    }
+    
+    return null;
+  }
+
+  /**
    * Analisa a estrutura de arquivos do projeto
    */
   private static async analyzeFileStructure(projectPath: string): Promise<any> {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      
-      if (!fs.existsSync(projectPath)) {
+      // Usar Electron IPC para acessar sistema de arquivos
+      const files = await window.electron.scanDirectory(projectPath);
+      if (!files) {
         throw new Error(`Caminho do projeto não encontrado: ${projectPath}`);
       }
       
-      const files = fs.readdirSync(projectPath, { withFileTypes: true });
       const structure = {
         totalFiles: 0,
         csFiles: 0,
@@ -160,24 +467,29 @@ export class DotNetProjectAnalyzer {
       };
       
       for (const file of files) {
-        if (file.isDirectory()) {
-          structure.folders.push(file.name);
+        if (file.includes('/') || file.includes('\\')) {
+          // É um diretório
+          const folderName = file.split(/[/\\]/).pop();
+          if (folderName && !structure.folders.includes(folderName)) {
+            structure.folders.push(folderName);
+          }
         } else {
+          // É um arquivo
           structure.totalFiles++;
-          if (file.name.endsWith('.cs')) {
+          if (file.endsWith('.cs')) {
             structure.csFiles++;
           }
-          if (file.name.endsWith('.json')) {
+          if (file.endsWith('.json')) {
             structure.jsonFiles++;
           }
-          if (file.name === 'launchSettings.json') {
+          if (file === 'launchSettings.json') {
             structure.hasLaunchSettings = true;
           }
-          if (file.name.includes('appsettings')) {
+          if (file.includes('appsettings')) {
             structure.hasAppSettings = true;
           }
-          if (file.name.endsWith('.csproj')) {
-            structure.projects.push(file.name);
+          if (file.endsWith('.csproj')) {
+            structure.projects.push(file);
           }
         }
       }
@@ -204,7 +516,8 @@ export class DotNetProjectAnalyzer {
     projectPath: string,
     projectMetadata: any,
     entitiesResult: any,
-    fileStructure: any
+    fileStructure: any,
+    realControllers: ControllerInfo[]
   ): DotNetProjectAnalysis {
     const entities = entitiesResult.success ? entitiesResult.entities : [];
     
@@ -234,13 +547,17 @@ export class DotNetProjectAnalyzer {
           dependencies: []
         }];
 
-    // Controladores baseados nas entidades reais
-    const controllers: ControllerInfo[] = entities.map((entity: any) => ({
-      name: `${entity.name}Controller`,
-      path: `Controllers/${entity.name}Controller.cs`,
-      endpoints: this.generateEndpointsForEntity(entity.name),
-      hasAuthentication: false
-    }));
+    // Usar controllers reais se encontrados, senão gerar baseado nas entidades
+    const controllers: ControllerInfo[] = realControllers.length > 0 
+      ? realControllers 
+      : entities.map((entity: any) => ({
+          name: `${entity.name}Controller`,
+          path: `Controllers/${entity.name}Controller.cs`,
+          endpoints: this.generateEndpointsForEntity(entity.name),
+          hasAuthentication: false
+        }));
+
+    console.log(`📊 Controllers encontrados: ${controllers.length} (${realControllers.length} reais, ${entities.length} baseados em entidades)`);
 
     // Informações do banco baseadas nas entidades reais
     const database: DatabaseInfo = {
@@ -285,8 +602,8 @@ export class DotNetProjectAnalyzer {
       { 
         name: 'API Controllers', 
         module: 'Web API',
-        status: entities.length > 0 ? 'complete' : 'planned', 
-        description: `${controllers.length} controladores baseados em entidades` 
+        status: controllers.length > 0 ? 'complete' : 'planned', 
+        description: `${controllers.length} controladores (${realControllers.length} reais)` 
       },
       { 
         name: 'Configuration', 
@@ -387,320 +704,6 @@ export class DotNetProjectAnalyzer {
         returnType: 'void'
       }
     ];
-  }
-
-  /**
-   * Analisa informações da solução (.sln)
-   */
-  private static async analyzeSolution(projectPath: string): Promise<SolutionInfo> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const solutionData = await window.electron.analyzeSolution(projectPath);
-      
-      // Por enquanto, retorna dados simulados baseados no caminho
-      const projectName = projectPath.split('/').pop() || projectPath.split('\\').pop() || 'Unknown';
-      
-      return {
-        name: projectName,
-        path: projectPath,
-        projectCount: 5, // API, Domain, Application, Infrastructure, IoC
-        framework: '.NET 8.0',
-        configuration: 'Debug'
-      };
-    } catch (error) {
-      console.warn('⚠️ Não foi possível analisar a solução:', error);
-      return {
-        name: projectPath.split('/').pop() || projectPath.split('\\').pop() || 'Unknown',
-        path: projectPath,
-        projectCount: 0,
-        framework: 'Unknown',
-        configuration: 'Unknown'
-      };
-    }
-  }
-
-  /**
-   * Analisa todos os projetos (.csproj)
-   */
-  private static async analyzeProjects(projectPath: string): Promise<ProjectInfo[]> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const projectsData = await window.electron.analyzeProjects(projectPath);
-      
-      // Dados simulados baseados na estrutura típica
-      return [
-        {
-          name: 'API',
-          type: 'API',
-          path: `${projectPath}/API`,
-          framework: '.NET 8.0',
-          dependencies: [
-            { name: 'Microsoft.AspNetCore.Authentication.JwtBearer', version: '8.0.0', isOutdated: false },
-            { name: 'Swashbuckle.AspNetCore', version: '6.5.0', isOutdated: true },
-            { name: 'Microsoft.EntityFrameworkCore', version: '8.0.0', isOutdated: false }
-          ]
-        },
-        {
-          name: 'Domain',
-          type: 'Domain',
-          path: `${projectPath}/Domain`,
-          framework: '.NET 8.0',
-          dependencies: [
-            { name: 'FluentValidation', version: '11.8.0', isOutdated: false },
-            { name: 'MediatR', version: '12.2.0', isOutdated: false }
-          ]
-        },
-        {
-          name: 'Application',
-          type: 'Application',
-          path: `${projectPath}/Application`,
-          framework: '.NET 8.0',
-          dependencies: [
-            { name: 'AutoMapper', version: '12.0.1', isOutdated: false },
-            { name: 'MediatR', version: '12.2.0', isOutdated: false }
-          ]
-        },
-        {
-          name: 'Infrastructure',
-          type: 'Infrastructure',
-          path: `${projectPath}/Infrastructure`,
-          framework: '.NET 8.0',
-          dependencies: [
-            { name: 'Microsoft.EntityFrameworkCore.SqlServer', version: '8.0.0', isOutdated: false },
-            { name: 'Microsoft.EntityFrameworkCore.Tools', version: '8.0.0', isOutdated: false }
-          ]
-        },
-        {
-          name: 'IoC',
-          type: 'IoC',
-          path: `${projectPath}/IoC`,
-          framework: '.NET 8.0',
-          dependencies: [
-            { name: 'Microsoft.Extensions.DependencyInjection', version: '8.0.0', isOutdated: false }
-          ]
-        }
-      ];
-    } catch (error) {
-      console.warn('⚠️ Não foi possível analisar os projetos:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Analisa controllers e endpoints
-   */
-  private static async analyzeControllers(projectPath: string): Promise<ControllerInfo[]> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const controllersData = await window.electron.analyzeControllers(projectPath);
-      
-      // Dados simulados baseados na estrutura típica de blog
-      return [
-        {
-          name: 'UsersController',
-          path: `${projectPath}/API/Controllers/UsersController.cs`,
-          hasAuthentication: true,
-          endpoints: [
-            { method: 'GET', route: '/api/users', actionName: 'GetAll', hasAuth: false, parameters: [], returnType: 'List<UserDto>' },
-            { method: 'GET', route: '/api/users/{id}', actionName: 'GetById', hasAuth: false, parameters: ['id'], returnType: 'UserDto' },
-            { method: 'POST', route: '/api/users', actionName: 'Create', hasAuth: true, parameters: ['CreateUserDto'], returnType: 'UserDto' },
-            { method: 'PUT', route: '/api/users/{id}', actionName: 'Update', hasAuth: true, parameters: ['id', 'UpdateUserDto'], returnType: 'UserDto' },
-            { method: 'DELETE', route: '/api/users/{id}', actionName: 'Delete', hasAuth: true, parameters: ['id'], returnType: 'void' }
-          ]
-        },
-        {
-          name: 'PostsController',
-          path: `${projectPath}/API/Controllers/PostsController.cs`,
-          hasAuthentication: true,
-          endpoints: [
-            { method: 'GET', route: '/api/posts', actionName: 'GetAll', hasAuth: false, parameters: [], returnType: 'List<PostDto>' },
-            { method: 'GET', route: '/api/posts/{id}', actionName: 'GetById', hasAuth: false, parameters: ['id'], returnType: 'PostDto' },
-            { method: 'POST', route: '/api/posts', actionName: 'Create', hasAuth: true, parameters: ['CreatePostDto'], returnType: 'PostDto' },
-            { method: 'PUT', route: '/api/posts/{id}', actionName: 'Update', hasAuth: true, parameters: ['id', 'UpdatePostDto'], returnType: 'PostDto' }
-          ]
-        },
-        {
-          name: 'FollowsController',
-          path: `${projectPath}/API/Controllers/FollowsController.cs`,
-          hasAuthentication: true,
-          endpoints: [
-            { method: 'POST', route: '/api/follows', actionName: 'Follow', hasAuth: true, parameters: ['FollowDto'], returnType: 'void' },
-            { method: 'DELETE', route: '/api/follows/{id}', actionName: 'Unfollow', hasAuth: true, parameters: ['id'], returnType: 'void' },
-            { method: 'GET', route: '/api/follows/followers/{userId}', actionName: 'GetFollowers', hasAuth: false, parameters: ['userId'], returnType: 'List<UserDto>' }
-          ]
-        },
-        {
-          name: 'ConfigController',
-          path: `${projectPath}/API/Controllers/ConfigController.cs`,
-          hasAuthentication: false,
-          endpoints: [
-            { method: 'GET', route: '/api/config', actionName: 'GetConfig', hasAuth: false, parameters: [], returnType: 'ConfigDto' },
-            { method: 'PUT', route: '/api/config', actionName: 'UpdateConfig', hasAuth: true, parameters: ['UpdateConfigDto'], returnType: 'ConfigDto' }
-          ]
-        }
-      ];
-    } catch (error) {
-      console.warn('⚠️ Não foi possível analisar os controllers:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Analisa informações do banco de dados
-   */
-  private static async analyzeDatabase(projectPath: string): Promise<DatabaseInfo> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const dbData = await window.electron.analyzeDatabase(projectPath);
-      
-      // Dados simulados
-      return {
-        provider: 'SQL Server',
-        connectionStrings: [
-          { name: 'DefaultConnection', value: 'Server=(localdb)\\mssqllocaldb;Database=BlogDb;Trusted_Connection=true;', environment: 'Development' },
-          { name: 'ProductionConnection', value: 'Server=prod-server;Database=BlogDb;User Id=sa;Password=***;', environment: 'Production' }
-        ],
-        entities: [], // Será preenchido com entidades já escaneadas
-        migrations: [
-          { name: '20240101000000_InitialCreate', timestamp: '2024-01-01T00:00:00Z', isApplied: true },
-          { name: '20240115120000_AddUserTable', timestamp: '2024-01-15T12:00:00Z', isApplied: true },
-          { name: '20240201090000_AddPostsTable', timestamp: '2024-02-01T09:00:00Z', isApplied: true },
-          { name: '20240215143000_AddFollowsTable', timestamp: '2024-02-15T14:30:00Z', isApplied: false }
-        ],
-        hasSeedData: true
-      };
-    } catch (error) {
-      console.warn('⚠️ Não foi possível analisar o banco de dados:', error);
-      return {
-        provider: 'Unknown',
-        connectionStrings: [],
-        entities: [],
-        migrations: [],
-        hasSeedData: false
-      };
-    }
-  }
-
-  /**
-   * Analisa configurações (appsettings.json)
-   */
-  private static async analyzeAppSettings(projectPath: string): Promise<AppSettingsInfo> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const appSettingsData = await window.electron.analyzeAppSettings(projectPath);
-      
-      return {
-        environments: ['Development', 'Staging', 'Production'],
-        configurations: {
-          'Logging:LogLevel:Default': 'Information',
-          'Logging:LogLevel:Microsoft.AspNetCore': 'Warning',
-          'AllowedHosts': '*',
-          'JWT:Key': 'super-secret-key',
-          'JWT:Issuer': 'BlogAPI',
-          'JWT:Audience': 'BlogUsers',
-          'CORS:AllowedOrigins': 'http://localhost:3000,https://blog.example.com'
-        },
-        secrets: ['JWT:Key', 'ConnectionStrings:ProductionConnection']
-      };
-    } catch (error) {
-      console.warn('⚠️ Não foi possível analisar as configurações:', error);
-      return {
-        environments: ['Development'],
-        configurations: {},
-        secrets: []
-      };
-    }
-  }
-
-  /**
-   * Calcula métricas do projeto
-   */
-  private static async calculateMetrics(projectPath: string): Promise<ProjectMetrics> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const metricsData = await window.electron.calculateMetrics(projectPath);
-      
-      return {
-        totalFiles: 147,
-        linesOfCode: 8542,
-        codeComplexity: 3.2,
-        lastModified: new Date('2024-07-30T15:30:00Z'),
-        testCoverage: 78.5
-      };
-    } catch (error) {
-      console.warn('⚠️ Não foi possível calcular as métricas:', error);
-      return {
-        totalFiles: 0,
-        linesOfCode: 0,
-        codeComplexity: 0,
-        lastModified: new Date(),
-        testCoverage: 0
-      };
-    }
-  }
-
-  /**
-   * Detecta features implementadas
-   */
-  private static async detectFeatures(projectPath: string): Promise<ProjectFeature[]> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const featuresData = await window.electron.detectFeatures(projectPath);
-      
-      return [
-        { name: 'User Authentication', module: 'Authentication', status: 'complete', description: 'JWT-based user authentication system' },
-        { name: 'User Management', module: 'Users', status: 'complete', description: 'CRUD operations for user entities' },
-        { name: 'Blog Posts', module: 'Posts', status: 'complete', description: 'Create, read, update, delete blog posts' },
-        { name: 'Follow System', module: 'Social', status: 'in-progress', description: 'User follow/unfollow functionality' },
-        { name: 'Comments System', module: 'Posts', status: 'planned', description: 'Comments on blog posts' },
-        { name: 'Real-time Notifications', module: 'Notifications', status: 'planned', description: 'SignalR-based notifications' }
-      ];
-    } catch (error) {
-      console.warn('⚠️ Não foi possível detectar features:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Analisa configurações de deployment
-   */
-  private static async analyzeDeployment(projectPath: string): Promise<DeploymentInfo> {
-    try {
-      // TODO: Implementar análise real quando backend estiver pronto
-      // const deploymentData = await window.electron.analyzeDeployment(projectPath);
-      
-      return {
-        hasDockerfile: true,
-        hasDockerCompose: true,
-        hasCI: false,
-        environments: ['Development', 'Staging', 'Production']
-      };
-    } catch (error) {
-      console.warn('⚠️ Não foi possível analisar deployment:', error);
-      return {
-        hasDockerfile: false,
-        hasDockerCompose: false,
-        hasCI: false,
-        environments: []
-      };
-    }
-  }
-
-  /**
-   * Determina o tipo do projeto baseado no nome e caminho
-   */
-  private static determineProjectType(name: string, path: string): ProjectInfo['type'] {
-    const lowerName = name.toLowerCase();
-    const lowerPath = path.toLowerCase();
-    
-    if (lowerName.includes('api') || lowerPath.includes('/api/')) return 'API';
-    if (lowerName.includes('domain') || lowerPath.includes('/domain/')) return 'Domain';
-    if (lowerName.includes('application') || lowerPath.includes('/application/')) return 'Application';
-    if (lowerName.includes('infrastructure') || lowerPath.includes('/infrastructure/')) return 'Infrastructure';
-    if (lowerName.includes('ioc') || lowerPath.includes('/ioc/')) return 'IoC';
-    if (lowerName.includes('test') || lowerPath.includes('/test/')) return 'Tests';
-    
-    return 'API'; // Default
   }
 
   /**
