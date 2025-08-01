@@ -22,17 +22,33 @@ const { Title, Text } = Typography;
 interface HomePageProps {
   projectName?: string;
   entities: Entity[];
+  originalEntities?: Entity[];
   onMenuChange: (key: string) => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({
   projectName,
   entities,
+  originalEntities = [],
   onMenuChange
 }) => {
   const { isDarkMode } = useTheme();
   const entityStats = EntityChangeDetector.calculateEntityStats(entities);
   const filteredEntities = EntityChangeDetector.filterNonBaseEntities(entities);
+  
+  // Usar EntityChangeDetector para detectar modificações corretamente
+  const changeDetection = originalEntities.length > 0 && entities.length > 0 
+    ? EntityChangeDetector.detectChanges(entities, originalEntities)
+    : { 
+        hasChanges: false, 
+        addedEntities: [] as Entity[], 
+        modifiedEntities: [] as Entity[], 
+        removedEntities: [] as Entity[],
+        modifiedCount: 0 
+      };
+  
+  const newEntitiesCount = changeDetection.addedEntities.length;
+  const modifiedEntitiesCount = changeDetection.modifiedEntities.length;
   
   // Cores frias e sobrias
   const colors = {
@@ -148,7 +164,7 @@ const HomePage: React.FC<HomePageProps> = ({
             <Col>
               <Space size="large">
                 <Badge 
-                  status={projectName ? 'processing' : 'default'} 
+                  status={projectName ? 'success' : 'default'} 
                   text={
                     <Text strong style={{ 
                       color: projectName 
@@ -156,7 +172,7 @@ const HomePage: React.FC<HomePageProps> = ({
                         : (isDarkMode ? '#6B7280' : '#9CA3AF'),
                       fontSize: '14px'
                     }}>
-                      {projectName ? 'Projeto Ativo' : 'Nenhum Projeto'}
+                      {projectName ? 'Projeto Carregado' : 'Nenhum Projeto'}
                     </Text>
                   }
                 />
@@ -184,7 +200,7 @@ const HomePage: React.FC<HomePageProps> = ({
             }}
           >
             <Row gutter={[32, 16]}>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={6}>
                 <Statistic
                   title={
                     <Text style={{ 
@@ -203,7 +219,7 @@ const HomePage: React.FC<HomePageProps> = ({
                   prefix={<DatabaseOutlined />}
                 />
               </Col>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={6}>
                 <Statistic
                   title={
                     <Text style={{ 
@@ -222,25 +238,42 @@ const HomePage: React.FC<HomePageProps> = ({
                   prefix={<SettingOutlined />}
                 />
               </Col>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={6}>
                 <Statistic
                   title={
                     <Text style={{ 
                       color: isDarkMode ? '#94A3B8' : '#64748B',
                       fontSize: '13px'
                     }}>
-                      Complexidade
+                      Novas
                     </Text>
                   }
-                  value={entityStats.averagePropertiesPerEntity}
-                  precision={1}
+                  value={newEntitiesCount}
                   valueStyle={{ 
-                    color: colors.success,
+                    color: '#52c41a',
                     fontSize: '24px',
                     fontWeight: 'bold'
                   }}
-                  prefix={<BarChartOutlined />}
-                  suffix="avg"
+                  prefix={<PlusCircleOutlined />}
+                />
+              </Col>
+              <Col xs={24} sm={6}>
+                <Statistic
+                  title={
+                    <Text style={{ 
+                      color: isDarkMode ? '#94A3B8' : '#64748B',
+                      fontSize: '13px'
+                    }}>
+                      Modificadas
+                    </Text>
+                  }
+                  value={modifiedEntitiesCount}
+                  valueStyle={{ 
+                    color: '#faad14',
+                    fontSize: '24px',
+                    fontWeight: 'bold'
+                  }}
+                  prefix={<ApiOutlined />}
                 />
               </Col>
             </Row>

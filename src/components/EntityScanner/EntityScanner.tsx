@@ -458,80 +458,7 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
   };
 
   return (
-    <div style={{ background: isDarkMode ? '#0f1419' : '#f8fafc', minHeight: '100vh' }}>
-      <Card
-        title={
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '12px',
-            background: isDarkMode 
-              ? 'linear-gradient(135deg, #4A90E2 0%, #5D6D7E 100%)' 
-              : 'linear-gradient(135deg, #4A90E2 0%, #74B4E8 100%)',
-            margin: '-16px -16px 0 -16px',
-            padding: '20px',
-            borderTopLeftRadius: '8px',
-            borderTopRightRadius: '8px',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(74, 144, 226, 0.3)'
-          }}>
-            <Avatar 
-              icon={<SearchOutlined />} 
-              size="large"
-              style={{ 
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                border: '2px solid rgba(255, 255, 255, 0.3)'
-              }} 
-            />
-            <div>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 600,
-                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                marginBottom: '2px'
-              }}>
-                Entity Scanner
-              </div>
-              <div style={{ 
-                fontSize: '12px', 
-                opacity: 0.9,
-                color: 'rgba(255, 255, 255, 0.8)'
-              }}>
-                Análise e configuração de entidades em tempo real
-              </div>
-            </div>
-          </div>
-        }
-        size="small"
-        style={{
-          background: isDarkMode ? '#1a1a1a' : '#ffffff',
-          border: isDarkMode ? '1px solid #333' : '1px solid #e8e8e8',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: isDarkMode 
-            ? '0 8px 24px rgba(0, 0, 0, 0.4)' 
-            : '0 8px 24px rgba(0, 0, 0, 0.1)'
-        }}
-        extra={
-          projectInfo ? (
-            <Button 
-              icon={<FolderOpenOutlined />}
-              onClick={handleScanDirectory}
-              loading={isScanning}
-              size="small"
-              style={{
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                color: 'white',
-                borderRadius: '6px'
-              }}
-            >
-              Rescan Project
-            </Button>
-          ) : null
-        }
-      >
+    <div>
       <Space direction="vertical" style={{ width: '100%' }}>
         {/* Auto-loading indicator */}
         {isAutoLoading && (
@@ -588,7 +515,6 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
         {/* 📊 Project Information - Status Bar Fixo */}
         {projectInfo && projectInfo.isValid && (
           <>
-            <Affix offsetTop={0}>
             <Card 
               style={{ 
                 marginBottom: '16px',
@@ -762,7 +688,6 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
                 </Col>
               </Row>
             </Card>
-          </Affix>
 
           {/* Detalhes das Alterações - Collapsible Moderno */}
           {(getNewEntities().length > 0 || getModifiedEntities().length > 0) && (
@@ -1409,7 +1334,6 @@ const EntityScanner: React.FC<EntityScannerProps> = ({
           </Card>
         )}
       </Space>
-    </Card>
     </div>
   );
 };

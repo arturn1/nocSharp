@@ -349,6 +349,7 @@ const Home: React.FC = () => {
           <HomePage
             projectName={state.projectName}
             entities={entities}
+            originalEntities={originalEntities}
             onMenuChange={setActiveMenu}
           />
         );
@@ -412,6 +413,8 @@ const Home: React.FC = () => {
     <AppLayout
       activeMenu={activeMenu}
       projectName={state.projectName}
+      entities={entities}
+      originalEntities={originalEntities}
       onMenuChange={setActiveMenu}
     >
       {renderContent()}

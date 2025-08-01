@@ -9,9 +9,13 @@ import {
   BulbOutlined, 
   BulbFilled,
   CodeOutlined,
-  SettingOutlined 
+  SettingOutlined,
+  PlusCircleOutlined,
+  ApiOutlined
 } from '@ant-design/icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Entity } from '../../models/Entity';
+import { EntityChangeDetector } from '../../services/EntityChangeDetector';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -19,6 +23,8 @@ const { Title, Text } = Typography;
 interface AppLayoutProps {
   activeMenu: string;
   projectName?: string;
+  entities?: Entity[];
+  originalEntities?: Entity[];
   onMenuChange: (key: string) => void;
   children: React.ReactNode;
 }
@@ -26,10 +32,26 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({
   activeMenu,
   projectName,
+  entities = [],
+  originalEntities = [],
   onMenuChange,
   children
 }) => {
   const { isDarkMode, toggleTheme } = useTheme();
+  
+  // Usar EntityChangeDetector para detectar modificações corretamente
+  const changeDetection = originalEntities.length > 0 && entities.length > 0 
+    ? EntityChangeDetector.detectChanges(entities, originalEntities)
+    : { 
+        hasChanges: false, 
+        addedEntities: [] as Entity[], 
+        modifiedEntities: [] as Entity[], 
+        removedEntities: [] as Entity[],
+        modifiedCount: 0 
+      };
+  
+  const hasModifications = changeDetection.hasChanges;
+  const totalModifications = changeDetection.modifiedCount;
 
   // Cores frias e sobrias
   const colors = {
@@ -147,14 +169,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <Space size="large" align="center">
           {projectName && (
             <Badge 
-              status="processing" 
+              status={hasModifications ? 'processing' : 'success'} 
               text={
                 <Text style={{ 
-                  color: colors.primary,
+                  color: hasModifications 
+                    ? (isDarkMode ? '#faad14' : '#d48806')  // Amarelo para modificações
+                    : colors.primary,  // Azul para sincronizado
                   fontSize: '12px',
                   fontWeight: '500'
                 }}>
-                  Projeto Ativo
+                  {hasModifications 
+                    ? `${totalModifications} Modificações`
+                    : 'Sincronizado'}
                 </Text>
               }
             />
