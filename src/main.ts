@@ -138,7 +138,7 @@ ipcMain.handle('show-open-dialog', async (event, options) => {
 
 ipcMain.handle('check-entity-exists', async (event, projectPath, entityName) => {
   return new Promise((resolve) => {
-    const entityFilePath = path.join(projectPath, 'Domain', 'Entities', `${capitalizeFirstLetter(entityName)}Entity.cs`);
+    const entityFilePath = path.join(projectPath, 'Core', 'Entities', `${capitalizeFirstLetter(entityName)}Entity.cs`);
     const exists = fs.existsSync(entityFilePath);
     resolve(exists);
   });
@@ -147,7 +147,7 @@ ipcMain.handle('check-entity-exists', async (event, projectPath, entityName) => 
 ipcMain.handle('scan-existing-entities', async (event, projectPath) => {
   return new Promise((resolve, reject) => {
     try {
-      const entitiesPath = path.join(projectPath, 'Domain', 'Entities');
+      const entitiesPath = path.join(projectPath, 'Core', 'Entities');
       
       if (!fs.existsSync(entitiesPath)) {
         resolve([]);
